@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget QR Página</title>
+    <style>
+        /* Estilos del widget - Pueden ser sobrescritos por la página que lo incluye */
+        #qr-pagina-widget {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #qr-pagina-widget * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .qr-pagina-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .qr-pagina-container h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .qr-pagina-container .subtitle {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        .qr-pagina-qr-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: inline-block;
+            min-height: 200px;
+            min-width: 200px;
+        }
+
+        .qr-pagina-qr-container canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .qr-pagina-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .qr-pagina-url-display {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f7ff;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #555;
+            word-break: break-all;
+            text-align: left;
+        }
+
+        .qr-pagina-url-display strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .qr-pagina-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .qr-pagina-btn {
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .qr-pagina-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .qr-pagina-btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .qr-pagina-btn-secondary:hover {
+            background: #e0e0e0;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .qr-pagina-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #856404;
+            text-align: left;
+        }
+
+        @media (max-width: 500px) {
+            .qr-pagina-container {
+                padding: 15px;
+            }
+
+            .qr-pagina-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="qr-pagina-widget">
+        <div class="qr-pagina-container">
+            <h3>📱 Compartir esta página</h3>
+            <p class="subtitle">Escanea el código QR para abrir esta página en tu móvil</p>
+            
+            <div class="qr-pagina-qr-container" id="qrContainer">
+                <div class="qr-pagina-loading">Generando código QR...</div>
+            </div>
+
+            <div class="qr-pagina-url-display" id="urlDisplay" style="display: none;">
+                <strong>URL:</strong>
+                <span id="currentUrl"></span>
+            </div>
+
+            <div class="qr-pagina-actions">
+                <button type="button" class="qr-pagina-btn" id="downloadBtn">📥 Descargar QR</button>
+                <button type="button" class="qr-pagina-btn qr-pagina-btn-secondary" id="copyUrlBtn">📋 Copiar URL</button>
+            </div>
+
+            <div class="qr-pagina-info">
+                💡 Apunta la cámara de tu móvil al código QR para abrir esta página
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // Widget embebible para generar QR de la página actual
+        (function() {
+            const qrContainer = document.getElementById('qrContainer');
+            const urlDisplay = document.getElementById('urlDisplay');
+            const currentUrlSpan = document.getElementById('currentUrl');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const copyUrlBtn = document.getElementById('copyUrlBtn');
+
+            // Obtener la URL actual
+            function getCurrentUrl() {
+                // Si el widget está en un iframe, intentar obtener la URL del padre
+                try {
+                    if (window.self !== window.top) {
+                        // Estamos en un iframe, usar referrer o intentar comunicarnos con el padre
+                        return document.referrer || window.location.href;
+                    }
+                } catch (e) {
+                    // Si hay error de cross-origin, usar la URL actual
+                }
+                return window.location.href;
+            }
+
+            // Generar código QR
+            function generateQR() {
+                const url = getCurrentUrl();
+                
+                // Mostrar la URL
+                currentUrlSpan.textContent = url;
+                urlDisplay.style.display = 'block';
+
+                // Limpiar contenedor
+                qrContainer.innerHTML = '';
+
+                // Generar el código QR
+                new QRCode(qrContainer, {
+                    text: url,
+                    width: 250,
+                    height: 250,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+
+            // Descargar el código QR
+            downloadBtn.addEventListener('click', function() {
+                const canvas = qrContainer.querySelector('canvas');
+                if (!canvas) {
+                    alert('El código QR aún no se ha generado');
+                    return;
+                }
+
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'qr-pagina.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // Copiar URL al portapapeles
+            copyUrlBtn.addEventListener('click', function() {
+                const url = getCurrentUrl();
+                
+                navigator.clipboard.writeText(url).then(() => {
+                    const originalText = copyUrlBtn.textContent;
+                    copyUrlBtn.textContent = '✓ Copiado';
+                    setTimeout(() => {
+                        copyUrlBtn.textContent = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback para navegadores antiguos
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        const originalText = copyUrlBtn.textContent;
+                        copyUrlBtn.textContent = '✓ Copiado';
+                        setTimeout(() => {
+                            copyUrlBtn.textContent = originalText;
+                        }, 2000);
+                    } catch (err) {
+                        alert('No se pudo copiar la URL');
+                    }
+                    document.body.removeChild(textArea);
+                });
+            });
+
+            // Generar QR al cargar
+            document.addEventListener('DOMContentLoaded', function() {
+                // Pequeño delay para asegurar que la librería QRCode esté cargada
+                setTimeout(generateQR, 100);
+            });
+
+            // Si la librería ya está cargada, generar inmediatamente
+            if (typeof QRCode !== 'undefined') {
+                generateQR();
+            } else {
+                // Esperar a que se cargue la librería
+                window.addEventListener('load', function() {
+                    setTimeout(generateQR, 100);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
