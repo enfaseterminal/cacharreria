@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo de Inserción del Widget QR WiFi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .widget-container {
+            margin: 40px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 10px;
+            border: 2px dashed #ddd;
+        }
+        
+        .code-example {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 Ejemplo de Inserción del Widget QR WiFi</h1>
+        <p>Esta página muestra cómo insertar el widget generador de QR WiFi en cualquier página web.</p>
+    </div>
+    
+    <div class="content">
+        <h2>Método 1: Usando iframe (Recomendado)</h2>
+        <p>La forma más fácil de insertar el widget es usando un iframe:</p>
+        
+        <div class="code-example">
+&lt;iframe 
+    src="widget-embebible.html" 
+    width="100%" 
+    height="600" 
+    frameborder="0"
+    style="border: none; max-width: 500px; margin: 0 auto; display: block;"&gt;
+&lt;/iframe&gt;
+        </div>
+        
+        <div class="widget-container">
+            <h3>Widget en acción:</h3>
+            <iframe 
+                src="widget-embebible.html" 
+                width="100%" 
+                height="600" 
+                frameborder="0"
+                style="border: none; max-width: 500px; margin: 0 auto; display: block;">
+            </iframe>
+        </div>
+    </div>
+    
+    <div class="content">
+        <h2>Método 2: Código embebido directamente</h2>
+        <p>También puedes copiar el código HTML, CSS y JavaScript directamente en tu página. Abre <code>widget-embebible.html</code> y copia:</p>
+        <ul>
+            <li>El contenido de la etiqueta <code>&lt;style&gt;</code></li>
+            <li>El contenido del <code>&lt;div id="qr-wifi-widget-embeddable"&gt;</code></li>
+            <li>El contenido de la etiqueta <code>&lt;script&gt;</code></li>
+        </ul>
+        <p>No olvides incluir la librería QRCode:</p>
+        <div class="code-example">
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"&gt;&lt;/script&gt;
+        </div>
+    </div>
+    
+    <div class="content">
+        <h2>Método 3: Versión Standalone</h2>
+        <p>Si quieres una página completa independiente, usa <code>standalone.html</code>. Todo está incluido en un solo archivo.</p>
+        <p><a href="standalone.html" target="_blank">Abrir standalone.html</a></p>
+    </div>
+</body>
+</html>

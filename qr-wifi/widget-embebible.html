@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget QR WiFi Embebible</title>
+    <style>
+        /* Estilos del widget - Pueden ser sobrescritos por la página que lo incluye */
+        #qr-wifi-widget-embeddable {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #qr-wifi-widget-embeddable * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .qr-wifi-widget-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+        }
+
+        .qr-wifi-widget-container h2 {
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .qr-wifi-widget-container .subtitle {
+            color: #999;
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        .qr-wifi-widget-form {
+            margin-bottom: 20px;
+        }
+
+        .qr-wifi-widget-form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .qr-wifi-widget-form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .qr-wifi-widget-form-group input,
+        .qr-wifi-widget-form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .qr-wifi-widget-form-group input:focus,
+        .qr-wifi-widget-form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .qr-wifi-widget-toggle-password {
+            position: absolute;
+            right: 8px;
+            top: 32px;
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .qr-wifi-widget-toggle-password:hover {
+            color: #764ba2;
+        }
+
+        .qr-wifi-widget-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .qr-wifi-widget-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .qr-wifi-widget-output {
+            display: none;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .qr-wifi-widget-qr-container {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .qr-wifi-widget-qr-container canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .qr-wifi-widget-output-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        .qr-wifi-widget-action-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .qr-wifi-widget-action-btn:hover {
+            background: #e0e0e0;
+            border-color: #667eea;
+        }
+
+        .qr-wifi-widget-info {
+            background: #f0f7ff;
+            border-left: 3px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #555;
+            margin-top: 15px;
+        }
+
+        .qr-wifi-widget-info strong {
+            color: #667eea;
+        }
+
+        @media (max-width: 500px) {
+            .qr-wifi-widget-container {
+                padding: 15px;
+            }
+
+            .qr-wifi-widget-output-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="qr-wifi-widget-embeddable">
+        <div class="qr-wifi-widget-container">
+            <h2>🔐 WiFi QR</h2>
+            <p class="subtitle">Genera un código QR para compartir tu WiFi</p>
+            
+            <form class="qr-wifi-widget-form" id="wifiWidgetForm">
+                <div class="qr-wifi-widget-form-group">
+                    <label for="wifiWidgetSSID">Red WiFi (SSID):</label>
+                    <input type="text" id="wifiWidgetSSID" placeholder="Mi Red" required>
+                </div>
+
+                <div class="qr-wifi-widget-form-group">
+                    <label for="wifiWidgetPassword">Contraseña:</label>
+                    <input type="password" id="wifiWidgetPassword" placeholder="Contraseña">
+                    <button type="button" class="qr-wifi-widget-toggle-password" id="toggleWidgetPwd">Mostrar</button>
+                </div>
+
+                <div class="qr-wifi-widget-form-group">
+                    <label for="wifiWidgetSecurity">Seguridad:</label>
+                    <select id="wifiWidgetSecurity">
+                        <option value="WPA">WPA/WPA2/WPA3</option>
+                        <option value="WEP">WEP</option>
+                        <option value="nopass">Sin contraseña</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="qr-wifi-widget-btn">Generar QR</button>
+            </form>
+
+            <div class="qr-wifi-widget-output" id="wifiWidgetOutput">
+                <div class="qr-wifi-widget-qr-container" id="wifiWidgetQRContainer"></div>
+                <div class="qr-wifi-widget-output-actions">
+                    <button type="button" class="qr-wifi-widget-action-btn" id="downloadWidgetQR">📥 Descargar</button>
+                    <button type="button" class="qr-wifi-widget-action-btn" id="resetWidgetBtn">🔄 Limpiar</button>
+                </div>
+                <div class="qr-wifi-widget-info">
+                    <p><strong>Red:</strong> <span id="wifiWidgetDisplaySSID"></span></p>
+                    <p style="margin-top: 8px; font-size: 11px; font-style: italic;">Escanea con tu teléfono para conectarte</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // Widget embebible para QR WiFi
+        (function() {
+            const wifiForm = document.getElementById('wifiWidgetForm');
+            const wifiSSID = document.getElementById('wifiWidgetSSID');
+            const wifiPassword = document.getElementById('wifiWidgetPassword');
+            const wifiSecurity = document.getElementById('wifiWidgetSecurity');
+            const wifiOutput = document.getElementById('wifiWidgetOutput');
+            const wifiQRContainer = document.getElementById('wifiWidgetQRContainer');
+            const downloadQR = document.getElementById('downloadWidgetQR');
+            const resetWidget = document.getElementById('resetWidgetBtn');
+            const togglePwd = document.getElementById('toggleWidgetPwd');
+            const wifiDisplaySSID = document.getElementById('wifiWidgetDisplaySSID');
+
+            function escapeWiFi(str) {
+                return str
+                    .replace(/\\/g, '\\\\')
+                    .replace(/;/g, '\\;')
+                    .replace(/,/g, '\\,')
+                    .replace(/:/g, '\\:')
+                    .replace(/"/g, '\\"');
+            }
+
+            function generateWiFiQR() {
+                const ssid = wifiSSID.value.trim();
+                const password = wifiPassword.value.trim();
+                const security = wifiSecurity.value;
+
+                if (!ssid) {
+                    alert('Ingresa el nombre de la red WiFi');
+                    return;
+                }
+
+                const finalSecurity = password ? security : 'nopass';
+                let wifiString = `WIFI:T:${finalSecurity};S:${escapeWiFi(ssid)};`;
+                if (password) {
+                    wifiString += `P:${escapeWiFi(password)};`;
+                }
+                wifiString += ';H:false';
+
+                wifiQRContainer.innerHTML = '';
+                new QRCode(wifiQRContainer, {
+                    text: wifiString,
+                    width: 250,
+                    height: 250,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                wifiOutput.style.display = 'block';
+                wifiDisplaySSID.textContent = ssid;
+            }
+
+            wifiForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                generateWiFiQR();
+            });
+
+            togglePwd.addEventListener('click', () => {
+                const type = wifiPassword.type === 'password' ? 'text' : 'password';
+                wifiPassword.type = type;
+                togglePwd.textContent = type === 'password' ? 'Mostrar' : 'Ocultar';
+            });
+
+            downloadQR.addEventListener('click', () => {
+                const canvas = wifiQRContainer.querySelector('canvas');
+                if (!canvas) return;
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `wifi-${wifiSSID.value.replace(/\s+/g, '_')}.png`;
+                link.click();
+            });
+
+            resetWidget.addEventListener('click', () => {
+                wifiForm.reset();
+                wifiOutput.style.display = 'none';
+                wifiPassword.type = 'password';
+                togglePwd.textContent = 'Mostrar';
+                wifiSSID.focus();
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                wifiSSID.focus();
+            });
+        })();
+    </script>
+</body>
+</html>

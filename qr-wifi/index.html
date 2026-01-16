@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador QR WiFi</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="qr-widget">
+            <h1>Generador QR WiFi</h1>
+            <p class="subtitle">Crea un código QR para compartir tu WiFi fácilmente</p>
+            
+            <form class="wifi-form">
+                <div class="form-group">
+                    <label for="ssid">Nombre de la red (SSID):</label>
+                    <input 
+                        type="text" 
+                        id="ssid" 
+                        placeholder="Mi Red WiFi" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Contraseña (opcional)"
+                    >
+                    <button type="button" class="toggle-password" id="togglePassword">Mostrar</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="security">Tipo de seguridad:</label>
+                    <select id="security">
+                        <option value="WPA">WPA/WPA2/WPA3</option>
+                        <option value="WEP">WEP</option>
+                        <option value="nopass">Sin contraseña</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-generate">Generar Código QR</button>
+            </form>
+
+            <div class="qr-output" id="qrOutput" style="display: none;">
+                <div class="qr-container">
+                    <canvas id="qrCanvas"></canvas>
+                </div>
+                <div class="qr-actions">
+                    <button type="button" class="btn-download" id="btnDownload">Descargar QR</button>
+                    <button type="button" class="btn-copy" id="btnCopy">Copiar Texto</button>
+                    <button type="button" class="btn-reset" id="btnReset">Limpiar</button>
+                </div>
+                <div class="qr-info">
+                    <p><strong>Red:</strong> <span id="infoSSID"></span></p>
+                    <p class="connection-text">Apunta tu cámara o escanea con una aplicación QR para conectarte a esta red.</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>¿Cómo usar?</h3>
+                <ol>
+                    <li>Ingresa el nombre de tu red WiFi (SSID)</li>
+                    <li>Ingresa tu contraseña WiFi (si la tienes)</li>
+                    <li>Selecciona el tipo de seguridad</li>
+                    <li>Haz clic en "Generar Código QR"</li>
+                    <li>Descarga o comparte el código QR</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
