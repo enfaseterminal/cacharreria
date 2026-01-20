@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo Completo - Preview Hover</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .article {
+            margin-bottom: 30px;
+        }
+
+        .article h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .article p {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .article a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .article a:hover {
+            border-bottom-color: #667eea;
+        }
+
+        .config-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+            border-left: 4px solid #667eea;
+        }
+
+        .config-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .config-section code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📰 Artículo de Ejemplo</h1>
+        <p class="subtitle">Pasa el ratón sobre los enlaces para ver su previsualización</p>
+
+        <article class="article">
+            <h2>Recursos Útiles para Desarrolladores</h2>
+            
+            <p>
+                Si estás interesado en tecnología, Linux y aplicaciones, te recomiendo visitar 
+                <a href="https://www.enfaseterminal.com/" class="preview-link" target="_blank">Blog EnFaseTerminal</a>, 
+                un blog especializado en tecnología, comandos Linux, aplicaciones y más.
+            </p>
+
+            <p>
+                Para competiciones escolares y marcadores deportivos, echa un vistazo a 
+                <a href="https://www.ligaescolar.es/" class="preview-link" target="_blank">Liga Escolar</a>, 
+                la plataforma oficial de marcadores deportivos para competiciones escolares. Incluye marcadores 
+                para voleibol, fútbol, baloncesto, pádel, tenis y juegos de mesa como dominó, chinchón y ajedrez.
+            </p>
+        </article>
+
+        <div class="config-section">
+            <h3>⚙️ Configuración</h3>
+            <p>Este ejemplo usa la configuración por defecto:</p>
+            <ul style="margin-left: 20px; color: #666;">
+                <li>Se aplica solo a enlaces con clase <code>preview-link</code></li>
+                <li>Delay de 500ms antes de mostrar el preview</li>
+                <li>Posición: bottom (debajo del enlace)</li>
+                <li>Cache activado para mejorar el rendimiento</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Script de preview al hover -->
+    <script src="hover-preview.js"></script>
+    
+    <!-- Opcional: Configuración personalizada -->
+    <script>
+        // Ejemplo de configuración personalizada (descomenta para usar):
+        /*
+        HoverPreview.init({
+            selector: 'a.preview-link',  // Selector CSS
+            applyToAllExternal: false,   // Aplicar a todos los enlaces externos
+            delay: 500,                  // Delay en milisegundos
+            position: 'bottom',          // 'top', 'bottom', 'left', 'right'
+            maxWidth: 400,               // Ancho máximo del preview
+            cache: true,                 // Cachear previsualizaciones
+            zIndex: 10000               // Z-index del tooltip
+        });
+        */
+    </script>
+</body>
+</html>

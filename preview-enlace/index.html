@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsualizador de Enlaces</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ejemplos {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .ejemplos h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .ejemplo-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .ejemplo-link {
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .ejemplo-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .preview-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preview-title {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .preview-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .preview-url {
+            color: #667eea;
+            font-size: 13px;
+            word-break: break-all;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f7ff;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .preview-btn {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preview-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .preview-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .preview-btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .preview-btn-secondary:hover {
+            background: #e0e0e0;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            padding: 20px;
+            background: #fee;
+            border-left: 4px solid #f00;
+            border-radius: 4px;
+            color: #c00;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .preview-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔗 Previsualizador de Enlaces</h1>
+            <p class="subtitle">Ingresa una URL para ver su previsualización</p>
+            
+            <form id="previewForm">
+                <div class="input-group">
+                    <label for="urlInput">URL del enlace:</label>
+                    <input 
+                        type="url" 
+                        id="urlInput" 
+                        placeholder="https://www.ejemplo.com"
+                        required
+                    >
+                </div>
+                <button type="submit" class="btn" id="previewBtn">
+                    Ver Previsualización
+                </button>
+            </form>
+
+            <div class="ejemplos">
+                <h3>Ejemplos:</h3>
+                <div class="ejemplo-links">
+                    <a href="#" class="ejemplo-link" data-url="https://www.enfaseterminal.com/">Blog EnFaseTerminal</a>
+                    <a href="#" class="ejemplo-link" data-url="https://www.ligaescolar.es/">Liga Escolar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Previsualización del Enlace</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando previsualización...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('previewForm');
+        const urlInput = document.getElementById('urlInput');
+        const previewBtn = document.getElementById('previewBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalBody = document.getElementById('modalBody');
+        const modalClose = document.getElementById('modalClose');
+        const ejemploLinks = document.querySelectorAll('.ejemplo-link');
+
+        // Ejemplos de enlaces
+        ejemploLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.getAttribute('data-url');
+                urlInput.value = url;
+                form.dispatchEvent(new Event('submit'));
+            });
+        });
+
+        // Cerrar modal
+        modalClose.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', function(e) {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+
+        // Cerrar con ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('show')) {
+                closeModal();
+            }
+        });
+
+        function closeModal() {
+            modalOverlay.classList.remove('show');
+        }
+
+        function showModal() {
+            modalOverlay.classList.add('show');
+        }
+
+        function showLoading() {
+            modalBody.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando previsualización...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            modalBody.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function showPreview(data) {
+            const { title, description, image, url } = data;
+            
+            modalBody.innerHTML = `
+                ${image ? `<img src="${image}" alt="${title || 'Preview'}" class="preview-image" onerror="this.style.display='none'">` : ''}
+                ${title ? `<h3 class="preview-title">${title}</h3>` : ''}
+                ${description ? `<p class="preview-description">${description}</p>` : ''}
+                <div class="preview-url">
+                    <strong>URL:</strong> ${url}
+                </div>
+                <div class="preview-actions">
+                    <button class="preview-btn preview-btn-primary" onclick="window.open('${url}', '_blank')">
+                        Abrir Enlace
+                    </button>
+                    <button class="preview-btn preview-btn-secondary" id="copyUrlBtn">
+                        Copiar URL
+                    </button>
+                </div>
+            `;
+
+            // Copiar URL
+            const copyBtn = document.getElementById('copyUrlBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    navigator.clipboard.writeText(url).then(() => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = '✓ Copiado';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    }).catch(() => {
+                        alert('No se pudo copiar la URL');
+                    });
+                });
+            }
+        }
+
+        // Función para obtener previsualización usando API
+        async function fetchPreview(url) {
+            try {
+                // Método 1: Usar API de LinkPreview (requiere API key, pero tiene versión gratuita)
+                // Para producción, necesitarías registrarte en linkpreview.net
+                
+                // Método 2: Usar proxy CORS para obtener metadatos directamente
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (!data.contents) {
+                    throw new Error('No se pudo obtener el contenido');
+                }
+
+                // Parsear HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+
+                // Extraer metadatos
+                const title = doc.querySelector('title')?.textContent || 
+                             doc.querySelector('meta[property="og:title"]')?.content ||
+                             doc.querySelector('meta[name="twitter:title"]')?.content ||
+                             'Sin título';
+
+                const description = doc.querySelector('meta[property="og:description"]')?.content ||
+                                  doc.querySelector('meta[name="description"]')?.content ||
+                                  doc.querySelector('meta[name="twitter:description"]')?.content ||
+                                  'Sin descripción disponible';
+
+                const image = doc.querySelector('meta[property="og:image"]')?.content ||
+                            doc.querySelector('meta[name="twitter:image"]')?.content ||
+                            doc.querySelector('link[rel="icon"]')?.href ||
+                            null;
+
+                // Convertir imagen relativa a absoluta si es necesario
+                let imageUrl = image;
+                if (image && !image.startsWith('http')) {
+                    try {
+                        const urlObj = new URL(url);
+                        if (image.startsWith('//')) {
+                            imageUrl = urlObj.protocol + image;
+                        } else if (image.startsWith('/')) {
+                            imageUrl = urlObj.origin + image;
+                        } else {
+                            imageUrl = urlObj.origin + '/' + image;
+                        }
+                    } catch (e) {
+                        imageUrl = image;
+                    }
+                }
+
+                return {
+                    title: title.trim(),
+                    description: description.trim(),
+                    image: imageUrl,
+                    url: url
+                };
+            } catch (error) {
+                console.error('Error fetching preview:', error);
+                throw new Error('No se pudo obtener la previsualización. Verifica que la URL sea válida.');
+            }
+        }
+
+        // Manejar envío del formulario
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Por favor, ingresa una URL válida');
+                return;
+            }
+
+            // Validar URL
+            let validUrl;
+            try {
+                validUrl = new URL(url).href;
+            } catch (e) {
+                // Intentar agregar https:// si no tiene protocolo
+                try {
+                    validUrl = new URL('https://' + url).href;
+                } catch (e2) {
+                    alert('Por favor, ingresa una URL válida');
+                    return;
+                }
+            }
+
+            // Actualizar input con URL válida
+            urlInput.value = validUrl;
+
+            // Mostrar modal y loading
+            showModal();
+            showLoading();
+            previewBtn.disabled = true;
+            previewBtn.textContent = 'Cargando...';
+
+            try {
+                const previewData = await fetchPreview(validUrl);
+                showPreview(previewData);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                previewBtn.disabled = false;
+                previewBtn.textContent = 'Ver Previsualización';
+            }
+        });
+
+        // Enfocar input al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            urlInput.focus();
+        });
+    </script>
+</body>
+</html>
