@@ -230,7 +230,7 @@
 
     <div class="input-group">
         <input type="url" id="target-url" placeholder="https://ejemplo.com/articulo" required>
-        <button onclick="pasteUrl()" style="background: #6c757d;" id="paste-url-btn" title="Pegar URL desde el portapapeles">📋</button>
+        <button onclick="pasteUrl()" style="background: #6c757d;" id="paste-url-btn" title="Pegar URL desde el portapapeles" data-lang-key="pasteUrl">📋</button>
         <select id="tone-select">
             <option value="formal" data-lang-key="formalTone">👔 Formal</option>
             <option value="divertido" data-lang-key="funTone">✨ Divertido</option>
@@ -240,7 +240,8 @@
             <option value="es">🇪🇸 Español</option>
             <option value="en">🇬🇧 English</option>
         </select>
-        <button onclick="processUrl()">Generar</button>
+        <button onclick="processUrl()" data-lang-key="generateButton">Generar</button>
+        <button onclick="clearFields()" style="background: #e74c3c;" data-lang-key="clear">Limpiar</button>
     </div>
 
     <div class="options-row">

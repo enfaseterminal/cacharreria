@@ -55,7 +55,8 @@ const LANGUAGE_STRINGS = {
         stats: "📊",
         retweet: "🔁",
         heart: "❤️",
-        generateButton: "Generar"
+        generateButton: "Generar",
+        clear: "Limpiar"
     },
     en: {
         appTitle: "Social Poster Hub",
@@ -98,7 +99,8 @@ const LANGUAGE_STRINGS = {
         stats: "📊",
         retweet: "🔁",
         heart: "❤️",
-        generateButton: "Generate"
+        generateButton: "Generate",
+        clear: "Clear"
     }
 };
 
@@ -145,6 +147,35 @@ const TONE_TEMPLATES = {
     }
 };
 
+// Mapa de palabras clave para sugerencia automática de emojis
+const EMOJI_MAP = {
+    // Tecnología e IA
+    ia: "🤖", ai: "🤖", robot: "🤖", tech: "💻", tecnologia: "💻", technology: "💻",
+    web: "🌐", code: "💻", codigo: "💻", data: "📊", datos: "📊",
+    // Contenido y Educación
+    guia: "📚", guide: "📚", tutorial: "📖", curso: "🎓", course: "🎓",
+    noticia: "📰", news: "📰", video: "🎥", podcast: "🎙️",
+    // Negocios y Marketing
+    seo: "🔍", marketing: "📈", startup: "🚀", launch: "🚀", lanzamiento: "🚀",
+    oferta: "💰", offer: "💰", gratis: "🆓", free: "🆓", nuevo: "🆕", new: "🆕",
+    // Temas generales
+    diseño: "🎨", design: "🎨", salud: "🏥", health: "🏥", deporte: "⚽", sport: "⚽",
+    musica: "🎵", music: "🎵", viaje: "✈️", travel: "✈️", comida: "🍔", food: "🍔",
+    importante: "🚨", important: "🚨", alerta: "🔔", alert: "🔔", hoy: "📅", today: "📅"
+};
+
+/**
+ * Sugiere emojis basados en palabras clave del texto
+ */
+function getSuggestedEmojis(text) {
+    const words = text.toLowerCase().split(/[\s,.;:!?]+/);
+    const suggested = [];
+    words.forEach(word => {
+        if (EMOJI_MAP[word]) suggested.push(EMOJI_MAP[word]);
+    });
+    return [...new Set(suggested)].slice(0, 3).join(' ');
+}
+
 async function processUrl() {
     const urlInput = document.getElementById('target-url').value.trim();
     const tone = document.getElementById('tone-select').value;
@@ -171,7 +202,10 @@ async function processUrl() {
         const meta = {
             title: doc.querySelector('title')?.innerText || LANGUAGE_STRINGS[lang].fallbackTitle,
             description: doc.querySelector('meta[name="description"]')?.content || 
-                         doc.querySelector('meta[property="og:description"]')?.content || LANGUAGE_STRINGS[lang].fallbackDescription,
+                         doc.querySelector('meta[property="og:description"]')?.content || 
+                         doc.querySelector('meta[name="twitter:description"]')?.content || LANGUAGE_STRINGS[lang].fallbackDescription,
+            image: doc.querySelector('meta[property="og:image"]')?.content || 
+                   doc.querySelector('meta[name="twitter:image"]')?.content || null,
             url: urlInput
         };
 
@@ -199,6 +233,12 @@ function generateDrafts(meta, tone) {
         hashtagsStr = "\n\n" + tags.join(' ');
     }
 
+    // Obtener emojis basados en el título
+    const emojis = getSuggestedEmojis(meta.title);
+    // Creamos una copia de meta para no alterar el original, inyectando emojis en el título
+    const displayMeta = { ...meta };
+    if (emojis) displayMeta.title = `${emojis} ${meta.title}`;
+
     const templates = TONE_TEMPLATES[lang][tone];
     if (!templates) {
         console.error(`No templates found for language '${lang}' and tone '${tone}'`);
@@ -208,7 +248,7 @@ function generateDrafts(meta, tone) {
 
     const platforms = ['x', 'linkedin', 'facebook', 'threads'];
     platforms.forEach(p => {
-        let text = templates[p](meta, hashtagsStr);
+        let text = templatesp;
         if (LIMITS[p] && text.length > LIMITS[p]) {
             text = text.substring(0, LIMITS[p] - 3) + "...";
         }
@@ -229,7 +269,7 @@ function suggestHashtags(title, desc, lang) {
     return [...new Set(words)].filter(w => !commonWords.includes(w)).slice(0, 4).map(w => `#${w}`);
 }
 
-function drawPreviewCard(meta) {
+async function drawPreviewCard(meta) {
     const format = document.getElementById('image-format').value;
     const size = IMAGE_SIZES[format];
     const canvas = document.getElementById('social-canvas');
@@ -240,26 +280,50 @@ function drawPreviewCard(meta) {
     canvas.height = size.h;
     container.style.display = "block";
 
-    // Fondo
-    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    grad.addColorStop(0, '#667eea');
-    grad.addColorStop(1, '#764ba2');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const drawContent = () => {
+        // Fondo degradado de seguridad
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, '#667eea');
+        grad.addColorStop(1, '#764ba2');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Marco
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.roundRect(30, 30, canvas.width - 60, canvas.height - 60, 15);
-    ctx.fill();
+        // Capa de oscurecimiento si hay imagen
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Texto
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.floor(canvas.width / 20)}px Segoe UI, sans-serif`;
-    wrapText(ctx, meta.title, 80, canvas.height/3, canvas.width - 160, Math.floor(canvas.width/18));
+        // Marco decorativo
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 20;
+        ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
-    ctx.font = '30px Courier New';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText(new URL(meta.url).hostname, 80, canvas.height - 80);
+        // Texto del título
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 10;
+        ctx.font = `bold ${Math.floor(canvas.width / 18)}px Segoe UI, sans-serif`;
+        wrapText(ctx, meta.title, 80, canvas.height / 2.5, canvas.width - 160, Math.floor(canvas.width / 16));
+
+        // Dominio en la parte inferior
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 30px Segoe UI';
+        ctx.fillStyle = '#ffffff';
+        const domain = new URL(meta.url).hostname.toUpperCase();
+        ctx.fillText(domain, 80, canvas.height - 80);
+    };
+
+    if (meta.image) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawContent();
+        };
+        img.onerror = drawContent;
+        img.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(meta.image)}`;
+    } else {
+        drawContent();
+    }
 }
 
 function wrapText(context, text, x, y, maxWidth, lineHeight) {
@@ -333,12 +397,21 @@ window.onclick = function(event) {
 function updateCount(platform) {
     const textarea = document.getElementById(`text-${platform}`);
     const counter = document.getElementById(`count-${platform}`);
+    let length = textarea.value.length;
+
+    // En X, las URLs siempre cuentan como 23 caracteres
+    if (platform === 'x') {
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        const urls = textarea.value.match(urlRegex) || [];
+        length = textarea.value.replace(urlRegex, '').length + (urls.length * 23);
+    }
+
     const limit = LIMITS[platform];
     if (limit) {
-        counter.innerText = `${textarea.value.length} / ${limit}`;
-        textarea.value.length > limit ? counter.classList.add('limit') : counter.classList.remove('limit');
+        counter.innerText = `${length} / ${limit}`;
+        length > limit ? counter.classList.add('limit') : counter.classList.remove('limit');
     } else {
-        counter.innerText = textarea.value.length;
+        counter.innerText = length;
     }
 }
 
@@ -358,6 +431,22 @@ async function pasteUrl() {
     } catch (err) {
         alert(LANGUAGE_STRINGS[lang].pasteUrlError);
     }
+}
+
+/**
+ * Limpia todos los campos y resetea la interfaz
+ */
+function clearFields() {
+    document.getElementById('target-url').value = '';
+    document.getElementById('status').innerText = '';
+    document.getElementById('loader').style.display = "none";
+    document.getElementById('preview-canvas-container').style.display = "none";
+
+    const platforms = ['x', 'linkedin', 'facebook', 'threads'];
+    platforms.forEach(p => {
+        document.getElementById(`text-${p}`).value = '';
+        updateCount(p);
+    });
 }
 
 function publishText(platform) {
@@ -421,8 +510,6 @@ function updateUIWithLanguage() {
             }
         }
     });
-    // Actualizar el botón "Generar"
-    document.querySelector('.input-group button:last-of-type').innerText = strings.generateButton;
 }
 
 window.onload = () => {
