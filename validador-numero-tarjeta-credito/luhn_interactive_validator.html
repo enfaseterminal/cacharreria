@@ -1,0 +1,146 @@
+<h2 class="sr-only">Validador interactivo del algoritmo de Luhn</h2>
+<style>
+  .digit-cell { display:inline-flex; flex-direction:column; align-items:center; gap:3px; min-width:32px; }
+  .digit-num { font-size:16px; font-weight:500; color:var(--color-text-primary); }
+  .digit-op { font-size:11px; color:var(--color-text-secondary); }
+  .digit-res { font-size:13px; font-weight:500; }
+  .digit-box { padding:6px 4px; border-radius:6px; border:0.5px solid var(--color-border-tertiary); background:var(--color-background-secondary); }
+  .digit-box.doubled { background:var(--color-background-info); border-color:var(--color-border-info); }
+  .digit-box.doubled .digit-res { color:var(--color-text-info); }
+  .digit-box.control { background:var(--color-background-warning); border-color:var(--color-border-warning); }
+  .digit-box.control .digit-res { color:var(--color-text-warning); }
+  .digit-box.doubled .digit-num { color:var(--color-text-info); }
+  .badge { display:inline-block; padding:4px 14px; border-radius:99px; font-size:13px; font-weight:500; }
+  .badge.valid { background:var(--color-background-success); color:var(--color-text-success); }
+  .badge.invalid { background:var(--color-background-danger); color:var(--color-text-danger); }
+  .badge.neutral { background:var(--color-background-secondary); color:var(--color-text-secondary); }
+  .preset-btn { font-size:12px; padding:4px 10px; border-radius:6px; cursor:pointer; }
+  #card-input { font-size:18px; font-weight:500; letter-spacing:2px; text-align:center; padding:10px 16px; width:100%; box-sizing:border-box; }
+</style>
+
+<div style="padding:1rem 0">
+  <div style="margin-bottom:12px">
+    <input type="text" id="card-input" maxlength="24" placeholder="Introduce un número de tarjeta" value="4532015112830366" oninput="validate(this.value)">
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <span style="font-size:12px;color:var(--color-text-secondary);align-self:center">Ejemplos:</span>
+    <button class="preset-btn" onclick="setCard('4532015112830366')">Visa válida</button>
+    <button class="preset-btn" onclick="setCard('5425233430109903')">Mastercard válida</button>
+    <button class="preset-btn" onclick="setCard('378282246310005')">Amex válida</button>
+    <button class="preset-btn" onclick="setCard('1234567890123456')">Inválida</button>
+  </div>
+
+  <div id="result-area" style="margin-bottom:20px;display:flex;align-items:center;gap:12px">
+    <span id="badge" class="badge neutral">Introduce un número</span>
+    <span id="sum-display" style="font-size:13px;color:var(--color-text-secondary)"></span>
+  </div>
+
+  <div id="steps-area">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 10px">Desglose por dígito:</p>
+    <div id="digit-grid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+  </div>
+
+  <div id="process-area" style="margin-top:20px">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <div style="flex:1;min-width:140px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Suma parcial</div>
+        <div id="partial-sum" style="font-size:22px;font-weight:500"></div>
+      </div>
+      <div style="flex:1;min-width:140px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Dígito de control</div>
+        <div id="check-digit-display" style="font-size:22px;font-weight:500"></div>
+      </div>
+      <div style="flex:1;min-width:140px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Total final</div>
+        <div id="total-display" style="font-size:22px;font-weight:500"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;color:var(--color-text-secondary)">
+    <span style="font-size:14px">🔵</span> Dígito duplicado (posición par) &nbsp; <span style="font-size:14px">🟡</span> Dígito de control &nbsp; ⬜ Dígito sin cambio
+  </div>
+</div>
+
+<script>
+function setCard(v) {
+  document.getElementById('card-input').value = v;
+  validate(v);
+}
+
+function validate(raw) {
+  const digits = raw.replace(/\D/g,'').split('').map(Number);
+  const grid = document.getElementById('digit-grid');
+  const badge = document.getElementById('badge');
+  const partialSumEl = document.getElementById('partial-sum');
+  const checkDigitEl = document.getElementById('check-digit-display');
+  const totalEl = document.getElementById('total-display');
+  const sumDisp = document.getElementById('sum-display');
+
+  grid.innerHTML = '';
+
+  if (digits.length < 2) {
+    badge.className = 'badge neutral';
+    badge.textContent = 'Introduce al menos 2 dígitos';
+    partialSumEl.textContent = '—';
+    checkDigitEl.textContent = '—';
+    totalEl.textContent = '—';
+    sumDisp.textContent = '';
+    return;
+  }
+
+  const checkDigit = digits[digits.length - 1];
+  const working = digits.slice(0, -1);
+
+  let partialSum = 0;
+  const processed = [];
+
+  working.reverse().forEach((d, i) => {
+    let op = '×1';
+    let res = d;
+    let doubled = false;
+    if (i % 2 === 0) {
+      res = d * 2;
+      op = '×2';
+      doubled = true;
+      if (res > 9) res -= 9;
+    }
+    partialSum += res;
+    processed.unshift({ orig: d, op, res, doubled });
+  });
+
+  const total = partialSum + checkDigit;
+  const isValid = total % 10 === 0;
+
+  processed.forEach(({ orig, op, res, doubled }) => {
+    const cell = document.createElement('div');
+    cell.className = 'digit-cell digit-box' + (doubled ? ' doubled' : '');
+    cell.innerHTML = `
+      <span class="digit-num">${orig}</span>
+      <span class="digit-op">${op}</span>
+      <span class="digit-res">${res}</span>
+    `;
+    grid.appendChild(cell);
+  });
+
+  const controlCell = document.createElement('div');
+  controlCell.className = 'digit-cell digit-box control';
+  controlCell.innerHTML = `
+    <span class="digit-num">${checkDigit}</span>
+    <span class="digit-op">ctrl</span>
+    <span class="digit-res">${checkDigit}</span>
+  `;
+  grid.appendChild(controlCell);
+
+  partialSumEl.textContent = partialSum;
+  checkDigitEl.textContent = checkDigit;
+  totalEl.textContent = `${total} (${total} % 10 = ${total % 10})`;
+
+  badge.className = 'badge ' + (isValid ? 'valid' : 'invalid');
+  badge.textContent = isValid ? '✅ Número válido' : '❌ Número inválido';
+  sumDisp.textContent = `${partialSum} + ${checkDigit} = ${total}`;
+}
+
+validate('4532015112830366');
+</script>
