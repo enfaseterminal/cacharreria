@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alias en Castellano — Hoja de Referencia Rápida</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:   #0d9e75;
+    --teal-l: #e0f5ee;
+    --teal-d: #085041;
+    --purple: #6250c8;
+    --purp-l: #eeeeff;
+    --purp-d: #2e1f80;
+    --amber:  #c47a0e;
+    --amb-l:  #fef3dc;
+    --ink:    #1a1a24;
+    --muted:  #6b6b7e;
+    --rule:   #e0e0eb;
+    --bg:     #fafafa;
+    --card:   #ffffff;
+    --mono:   'JetBrains Mono', monospace;
+    --sans:   'Sora', sans-serif;
+  }
+
+  @media print {
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    .page { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+    @page { size: A4; margin: 10mm; }
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    padding: 2rem 1rem 4rem;
+  }
+
+  .no-print {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .no-print button {
+    font-family: var(--sans);
+    font-size: .85rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: .55rem 1.4rem;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .no-print button:hover { background: var(--purple); }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 2px 32px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 2rem 2.5rem 1.6rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 1rem;
+  }
+  header h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+  }
+  header h1 span { color: #6ee7c0; }
+  header p {
+    font-size: .8rem;
+    font-weight: 300;
+    opacity: .65;
+    margin-top: .3rem;
+    font-family: var(--mono);
+  }
+  .badge-row { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .badge {
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .2rem .6rem;
+    border-radius: 4px;
+    letter-spacing: .03em;
+  }
+  .badge-linux  { background: #0d9e75; color: #fff; }
+  .badge-win    { background: #5264c8; color: #fff; }
+
+  /* ── LEGEND ──────────────────────────────── */
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    padding: .65rem 2.5rem;
+    background: #f2f2f8;
+    border-bottom: 1px solid var(--rule);
+    font-size: .73rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: .35rem; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-teal   { background: var(--teal); }
+  .dot-purple { background: var(--purple); }
+
+  /* ── BODY ────────────────────────────────── */
+  .body { padding: 1.6rem 2.5rem 2rem; }
+
+  /* ── CATEGORY BLOCK ──────────────────────── */
+  .category { margin-bottom: 1.4rem; }
+  .cat-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+    margin-bottom: .5rem;
+    padding-bottom: .35rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .cat-icon {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .65rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ── ALIAS GRID ──────────────────────────── */
+  .alias-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .28rem .6rem;
+  }
+
+  /* ── COLUMN HEADERS ──────────────────────── */
+  .col-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 .6rem;
+    margin-bottom: .4rem;
+  }
+  .col-hdr {
+    font-family: var(--mono);
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    padding: .2rem .55rem;
+    border-radius: 4px;
+  }
+  .col-hdr-linux  { background: var(--teal-l);  color: var(--teal-d); }
+  .col-hdr-win    { background: var(--purp-l);  color: var(--purp-d); }
+
+  /* ── ALIAS ROW ───────────────────────────── */
+  .alias-row {
+    display: contents;
+  }
+  .alias-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: .3rem;
+    padding: .22rem .4rem;
+    border-radius: 4px;
+    font-size: .72rem;
+    line-height: 1.45;
+  }
+  .alias-cell:hover { background: var(--teal-l); }
+  .alias-cell.win:hover { background: var(--purp-l); }
+
+  .alias-name {
+    font-family: var(--mono);
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+  .alias-cell.linux .alias-name { color: var(--teal-d); }
+  .alias-cell.win   .alias-name { color: var(--purp-d); }
+
+  .alias-sep {
+    color: var(--rule);
+    font-family: var(--mono);
+    flex-shrink: 0;
+    padding: 0 .05rem;
+  }
+  .alias-cmd {
+    font-family: var(--mono);
+    font-size: .67rem;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  /* empty cell */
+  .alias-cell.empty { opacity: 0; pointer-events: none; }
+
+  /* ── DIVIDER between categories ──────────── */
+  .divider {
+    height: 1px;
+    background: var(--rule);
+    margin: 1rem 0;
+  }
+
+  /* ── FOOTER ──────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--rule);
+    padding: .8rem 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .68rem;
+    color: var(--muted);
+    background: #f9f9fc;
+  }
+  footer span { font-family: var(--mono); }
+  .footer-note { font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <button onclick="window.print()">🖨 Imprimir / Guardar como PDF</button>
+</div>
+
+<div class="page">
+
+  <header>
+    <div>
+      <h1>Alias en castellano<br><span>Hoja de referencia rápida</span></h1>
+      <p>~/.bashrc · ~/.zshrc · $PROFILE · CMD alias.bat</p>
+    </div>
+    <div class="badge-row">
+      <span class="badge badge-linux">Linux / macOS</span>
+      <span class="badge badge-win">Windows PS</span>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-teal"></span> Linux / macOS (Bash · Zsh)</span>
+    <span class="legend-item"><span class="dot dot-purple"></span> Windows (PowerShell)</span>
+    <span>·</span>
+    <span>Los alias sin equivalente en la otra columna quedan en blanco</span>
+  </div>
+
+  <div class="body">
+
+    <!-- ── NAVEGACIÓN ───────────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:var(--teal-l);color:var(--teal-d)">📁</span>
+        Navegación y archivos
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">..</span><span class="alias-sep">→</span><span class="alias-cmd">cd ..</span></div>
+        <div class="alias-cell win"><span class="alias-name">..</span><span class="alias-sep">→</span><span class="alias-cmd">Set-Location ..</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">casa</span><span class="alias-sep">→</span><span class="alias-cmd">cd ~</span></div>
+        <div class="alias-cell win"><span class="alias-name">casa</span><span class="alias-sep">→</span><span class="alias-cmd">Set-Location $env:USERPROFILE</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">escritorio</span><span class="alias-sep">→</span><span class="alias-cmd">cd ~/Escritorio</span></div>
+        <div class="alias-cell win"><span class="alias-name">escritorio</span><span class="alias-sep">→</span><span class="alias-cmd">Set-Location "$env:USERPROFILE\Desktop"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">documentos</span><span class="alias-sep">→</span><span class="alias-cmd">cd ~/Documentos</span></div>
+        <div class="alias-cell win"><span class="alias-name">documentos</span><span class="alias-sep">→</span><span class="alias-cmd">Set-Location "$env:USERPROFILE\Documents"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">descargas</span><span class="alias-sep">→</span><span class="alias-cmd">cd ~/Descargas</span></div>
+        <div class="alias-cell win"><span class="alias-name">descargas</span><span class="alias-sep">→</span><span class="alias-cmd">Set-Location "$env:USERPROFILE\Downloads"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">anterior</span><span class="alias-sep">→</span><span class="alias-cmd">cd -</span></div>
+        <div class="alias-cell win empty"><span class="alias-name">—</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">listar</span><span class="alias-sep">→</span><span class="alias-cmd">ls --color=auto</span></div>
+        <div class="alias-cell win"><span class="alias-name">listar</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem | Format-Table -AutoSize</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">det</span><span class="alias-sep">→</span><span class="alias-cmd">ls -lah --color=auto</span></div>
+        <div class="alias-cell win"><span class="alias-name">det</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem -Force | Format-Table -AutoSize</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">recientes</span><span class="alias-sep">→</span><span class="alias-cmd">ls -lhtr --color=auto</span></div>
+        <div class="alias-cell win"><span class="alias-name">recientes</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem | Sort-Object LastWriteTime</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">pesados</span><span class="alias-sep">→</span><span class="alias-cmd">ls -lhS --color=auto</span></div>
+        <div class="alias-cell win"><span class="alias-name">pesados</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem | Sort-Object Length -Desc</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">copiar</span><span class="alias-sep">→</span><span class="alias-cmd">cp -iv</span></div>
+        <div class="alias-cell win"><span class="alias-name">buscar</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem -Recurse -Filter $nombre</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mover</span><span class="alias-sep">→</span><span class="alias-cmd">mv -iv</span></div>
+        <div class="alias-cell win"><span class="alias-name">nueva-carpeta</span><span class="alias-sep">→</span><span class="alias-cmd">New-Item -ItemType Directory; Set-Location</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">borrar</span><span class="alias-sep">→</span><span class="alias-cmd">rm -Iv</span></div>
+        <div class="alias-cell win empty"><span class="alias-name">—</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">buscar</span><span class="alias-sep">→</span><span class="alias-cmd">find . -name</span></div>
+        <div class="alias-cell win empty"><span class="alias-name">—</span></div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── SISTEMA ───────────────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:var(--amb-l);color:#7a4a00">⚙️</span>
+        Sistema y mantenimiento
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">actualizar</span><span class="alias-sep">→</span><span class="alias-cmd">sudo apt update &amp;&amp; apt upgrade -y</span></div>
+        <div class="alias-cell win"><span class="alias-name">actualizar-todo</span><span class="alias-sep">→</span><span class="alias-cmd">winget upgrade --all</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">limpiar</span><span class="alias-sep">→</span><span class="alias-cmd">apt autoremove -y &amp;&amp; apt autoclean</span></div>
+        <div class="alias-cell win"><span class="alias-name">limpiar</span><span class="alias-sep">→</span><span class="alias-cmd">Remove-Item "$env:TEMP\*" -Recurse -Force</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">limpiar-registros</span><span class="alias-sep">→</span><span class="alias-cmd">journalctl --vacuum-time=7d</span></div>
+        <div class="alias-cell win"><span class="alias-name">registros-errores</span><span class="alias-sep">→</span><span class="alias-cmd">Get-EventLog -LogName System -EntryType Error</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">info-sistema</span><span class="alias-sep">→</span><span class="alias-cmd">uname -a &amp;&amp; lsb_release -a</span></div>
+        <div class="alias-cell win"><span class="alias-name">info-sistema</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ComputerInfo | Select CsName,OsName</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">tiempo-encendido</span><span class="alias-sep">→</span><span class="alias-cmd">uptime -p</span></div>
+        <div class="alias-cell win"><span class="alias-name">tiempo-encendido</span><span class="alias-sep">→</span><span class="alias-cmd">(Get-Date) - (gcim Win32_OperatingSystem).LastBootUpTime</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">servicios-activos</span><span class="alias-sep">→</span><span class="alias-cmd">systemctl list-units --type=service</span></div>
+        <div class="alias-cell win"><span class="alias-name">servicios-activos</span><span class="alias-sep">→</span><span class="alias-cmd">Get-Service | Where-Object Status -eq Running</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">reiniciar</span><span class="alias-sep">→</span><span class="alias-cmd">sudo reboot</span></div>
+        <div class="alias-cell win"><span class="alias-name">reiniciar</span><span class="alias-sep">→</span><span class="alias-cmd">Restart-Computer -Force</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">apagar</span><span class="alias-sep">→</span><span class="alias-cmd">sudo shutdown -h now</span></div>
+        <div class="alias-cell win"><span class="alias-name">apagar</span><span class="alias-sep">→</span><span class="alias-cmd">Stop-Computer -Force</span></div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── RED ───────────────────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:#dceeff;color:#0a3d7a">🌐</span>
+        Red y conectividad
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">mis-interfaces</span><span class="alias-sep">→</span><span class="alias-cmd">ip -c a</span></div>
+        <div class="alias-cell win"><span class="alias-name">mis-interfaces</span><span class="alias-sep">→</span><span class="alias-cmd">ipconfig /all</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mi-ip-publica</span><span class="alias-sep">→</span><span class="alias-cmd">curl -s ifconfig.me</span></div>
+        <div class="alias-cell win"><span class="alias-name">mi-ip-publica</span><span class="alias-sep">→</span><span class="alias-cmd">(Invoke-WebRequest "https://ifconfig.me").Content</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">puertos-abiertos</span><span class="alias-sep">→</span><span class="alias-cmd">ss -tulnp</span></div>
+        <div class="alias-cell win"><span class="alias-name">puertos-abiertos</span><span class="alias-sep">→</span><span class="alias-cmd">netstat -ano | Select-String "LISTENING"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">redes-wifi</span><span class="alias-sep">→</span><span class="alias-cmd">nmcli device wifi list</span></div>
+        <div class="alias-cell win"><span class="alias-name">redes-wifi</span><span class="alias-sep">→</span><span class="alias-cmd">netsh wlan show networks</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mis-rutas</span><span class="alias-sep">→</span><span class="alias-cmd">ip route show</span></div>
+        <div class="alias-cell win"><span class="alias-name">mis-rutas</span><span class="alias-sep">→</span><span class="alias-cmd">route print</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">probar</span><span class="alias-sep">→</span><span class="alias-cmd">ping -c 5</span></div>
+        <div class="alias-cell win"><span class="alias-name">cortafuegos</span><span class="alias-sep">→</span><span class="alias-cmd">Get-NetFirewallProfile | Select Name,Enabled</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">cortafuegos</span><span class="alias-sep">→</span><span class="alias-cmd">sudo ufw status verbose</span></div>
+        <div class="alias-cell win"><span class="alias-name">editar-hosts</span><span class="alias-sep">→</span><span class="alias-cmd">notepad C:\Windows\System32\drivers\etc\hosts</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">editar-hosts</span><span class="alias-sep">→</span><span class="alias-cmd">sudo nano /etc/hosts</span></div>
+        <div class="alias-cell win"><span class="alias-name">reiniciar-red</span><span class="alias-sep">→</span><span class="alias-cmd">Restart-NetAdapter -Name "*"</span></div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── SEGURIDAD + USB ───────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:#fde8e8;color:#7a1010">🔒</span>
+        Seguridad · Usuarios · USB
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">conectados</span><span class="alias-sep">→</span><span class="alias-cmd">who</span></div>
+        <div class="alias-cell win"><span class="alias-name">conectados</span><span class="alias-sep">→</span><span class="alias-cmd">query user</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">quien-soy</span><span class="alias-sep">→</span><span class="alias-cmd">whoami &amp;&amp; id</span></div>
+        <div class="alias-cell win"><span class="alias-name">quien-soy</span><span class="alias-sep">→</span><span class="alias-cmd">[WindowsIdentity]::GetCurrent().Name</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">ultimos-accesos</span><span class="alias-sep">→</span><span class="alias-cmd">last | head -20</span></div>
+        <div class="alias-cell win"><span class="alias-name">accesos-fallidos</span><span class="alias-sep">→</span><span class="alias-cmd">Get-EventLog -LogName Security -InstanceId 4625</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">ver-accesos</span><span class="alias-sep">→</span><span class="alias-cmd">tail -50 /var/log/auth.log</span></div>
+        <div class="alias-cell win"><span class="alias-name">todos-usuarios</span><span class="alias-sep">→</span><span class="alias-cmd">Get-LocalUser | Select Name,Enabled</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">ataques-ssh</span><span class="alias-sep">→</span><span class="alias-cmd">grep "Failed password" /var/log/auth.log</span></div>
+        <div class="alias-cell win"><span class="alias-name">soy-admin</span><span class="alias-sep">→</span><span class="alias-cmd">[WindowsPrincipal]... IsInRole(Administrator)</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mis-discos</span><span class="alias-sep">→</span><span class="alias-cmd">lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT</span></div>
+        <div class="alias-cell win"><span class="alias-name">espacio-libre</span><span class="alias-sep">→</span><span class="alias-cmd">Get-PSDrive -PSProvider FileSystem</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">identificadores</span><span class="alias-sep">→</span><span class="alias-cmd">sudo blkid</span></div>
+        <div class="alias-cell win empty"><span class="alias-name">—</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">montados</span><span class="alias-sep">→</span><span class="alias-cmd">mount | grep "^/dev"</span></div>
+        <div class="alias-cell win empty"><span class="alias-name">—</span></div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── GIT + RESPALDOS ───────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:#ede8ff;color:#3a1f80">🗂</span>
+        Git y respaldos
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">estado</span><span class="alias-sep">→</span><span class="alias-cmd">git status -sb</span></div>
+        <div class="alias-cell win"><span class="alias-name">estado</span><span class="alias-sep">→</span><span class="alias-cmd">git status -sb</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">historial</span><span class="alias-sep">→</span><span class="alias-cmd">git log --oneline --graph --decorate --all</span></div>
+        <div class="alias-cell win"><span class="alias-name">historial</span><span class="alias-sep">→</span><span class="alias-cmd">git log --oneline --graph --decorate --all</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">anadir</span><span class="alias-sep">→</span><span class="alias-cmd">git add .</span></div>
+        <div class="alias-cell win"><span class="alias-name">anadir</span><span class="alias-sep">→</span><span class="alias-cmd">git add .</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">confirmar</span><span class="alias-sep">→</span><span class="alias-cmd">git commit -m</span></div>
+        <div class="alias-cell win"><span class="alias-name">confirmar</span><span class="alias-sep">→</span><span class="alias-cmd">git commit -m</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">enviar</span><span class="alias-sep">→</span><span class="alias-cmd">git push</span></div>
+        <div class="alias-cell win"><span class="alias-name">enviar</span><span class="alias-sep">→</span><span class="alias-cmd">git push</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">recibir</span><span class="alias-sep">→</span><span class="alias-cmd">git pull</span></div>
+        <div class="alias-cell win"><span class="alias-name">recibir</span><span class="alias-sep">→</span><span class="alias-cmd">git pull</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">ramas</span><span class="alias-sep">→</span><span class="alias-cmd">git branch</span></div>
+        <div class="alias-cell win"><span class="alias-name">ramas</span><span class="alias-sep">→</span><span class="alias-cmd">git branch</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">diferencias</span><span class="alias-sep">→</span><span class="alias-cmd">git diff</span></div>
+        <div class="alias-cell win"><span class="alias-name">diferencias</span><span class="alias-sep">→</span><span class="alias-cmd">git diff</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">guardar-temporal</span><span class="alias-sep">→</span><span class="alias-cmd">git stash</span></div>
+        <div class="alias-cell win"><span class="alias-name">guardar-temporal</span><span class="alias-sep">→</span><span class="alias-cmd">git stash</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">respaldar</span><span class="alias-sep">→</span><span class="alias-cmd">cp -v "$1" "${1}.resp_$(date +%Y%m%d)"</span></div>
+        <div class="alias-cell win"><span class="alias-name">respaldar</span><span class="alias-sep">→</span><span class="alias-cmd">Copy-Item $f "${f}.resp_$(Get-Date -Format yyyyMMdd)"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mis-respaldos</span><span class="alias-sep">→</span><span class="alias-cmd">ls -lhtr ~/respaldos/</span></div>
+        <div class="alias-cell win"><span class="alias-name">mis-respaldos</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem "$env:USERPROFILE\Respaldos"</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">simular-sync</span><span class="alias-sep">→</span><span class="alias-cmd">rsync -avhn --delete</span></div>
+        <div class="alias-cell win"><span class="alias-name">sincronizar</span><span class="alias-sep">→</span><span class="alias-cmd">robocopy $origen $destino /MIR /Z /NP</span></div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── MONITORIZACIÓN ─────────────────── -->
+    <div class="category">
+      <div class="cat-title">
+        <span class="cat-icon" style="background:#e4f9e4;color:#145214">📊</span>
+        Monitorización del sistema
+      </div>
+      <div class="col-headers">
+        <span class="col-hdr col-hdr-linux">Linux / macOS</span>
+        <span class="col-hdr col-hdr-win">Windows PowerShell</span>
+      </div>
+      <div class="alias-grid">
+
+        <div class="alias-cell linux"><span class="alias-name">memoria</span><span class="alias-sep">→</span><span class="alias-cmd">free -h</span></div>
+        <div class="alias-cell win"><span class="alias-name">memoria</span><span class="alias-sep">→</span><span class="alias-cmd">Get-CimInstance Win32_OperatingSystem | Select *Memory*</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">espacio-libre</span><span class="alias-sep">→</span><span class="alias-cmd">df -hT | grep -v tmpfs</span></div>
+        <div class="alias-cell win"><span class="alias-name">espacio-libre</span><span class="alias-sep">→</span><span class="alias-cmd">Get-PSDrive -PSProvider FileSystem</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mas-cpu</span><span class="alias-sep">→</span><span class="alias-cmd">ps aux --sort=-%cpu | head -15</span></div>
+        <div class="alias-cell win"><span class="alias-name">mas-cpu</span><span class="alias-sep">→</span><span class="alias-cmd">Get-Process | Sort-Object CPU -Desc | Select -First 15</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">mas-memoria</span><span class="alias-sep">→</span><span class="alias-cmd">ps aux --sort=-%mem | head -15</span></div>
+        <div class="alias-cell win"><span class="alias-name">mas-memoria</span><span class="alias-sep">→</span><span class="alias-cmd">Get-Process | Sort-Object WorkingSet -Desc | Select -First 15</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">registros-vivo</span><span class="alias-sep">→</span><span class="alias-cmd">sudo journalctl -f</span></div>
+        <div class="alias-cell win"><span class="alias-name">registros</span><span class="alias-sep">→</span><span class="alias-cmd">Get-EventLog -LogName System -Newest 50</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">registros-errores</span><span class="alias-sep">→</span><span class="alias-cmd">journalctl -p err -n 30</span></div>
+        <div class="alias-cell win"><span class="alias-name">info-cpu</span><span class="alias-sep">→</span><span class="alias-cmd">Get-CimInstance Win32_Processor | Select Name,NumberOfCores</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">uso-actual</span><span class="alias-sep">→</span><span class="alias-cmd">du -sh *</span></div>
+        <div class="alias-cell win"><span class="alias-name">uso-actual</span><span class="alias-sep">→</span><span class="alias-cmd">Get-ChildItem | Select Name, Length | Sort Length -Desc</span></div>
+
+        <div class="alias-cell linux"><span class="alias-name">temperatura</span><span class="alias-sep">→</span><span class="alias-cmd">sensors</span></div>
+        <div class="alias-cell win"><span class="alias-name">recargar</span><span class="alias-sep">→</span><span class="alias-cmd">. $PROFILE</span></div>
+
+      </div>
+    </div>
+
+  </div><!-- /body -->
+
+  <footer>
+    <span>~/.bashrc · ~/.zshrc · $PROFILE</span>
+    <span class="footer-note">Todos los alias sin tildes para máxima compatibilidad</span>
+    <span>source ~/.bashrc · . $PROFILE</span>
+  </footer>
+
+</div><!-- /page -->
+
+</body>
+</html>
