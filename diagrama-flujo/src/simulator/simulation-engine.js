@@ -13,6 +13,7 @@ import {
 const SENSOR_CALLS = new Set(["digitalRead", "analogRead"]);
 const PIN_OUTPUT_CALLS = new Set(["digitalWrite", "analogWrite"]);
 const SERIAL_CALLS = new Set(["Serial.print", "Serial.println"]);
+const SERIAL_BEGIN_CALL = "Serial.begin";
 const PIN_MODE_CALLS = new Set(["pinMode"]);
 
 function nodeData(node, key) {
@@ -151,6 +152,7 @@ export class SimulationEngine {
     const startNode = this.diagram.nodes.find((node) => node.kind === "start");
     this.setCurrentNode(startNode?.id ?? null, null, "Inicio de la función.");
     this.history = [];
+    this.addEvent("system", "[SIMULACIÓN INICIADA]", null, { step: 0 });
     this.notify();
   }
 
@@ -241,6 +243,7 @@ export class SimulationEngine {
         this.setCurrentNode(endNode?.id ?? null, null, `Fin de ${getNodeName(this.currentFunction)}().`);
         this.state.status = "completed";
         this.state.message = "La función terminó.";
+        this.addEvent("system", "[SIMULACIÓN FINALIZADA]", null, { step: this.state.step + 1 });
         this.state.step += 1;
         this.notify();
         return this.getState();
@@ -299,6 +302,14 @@ export class SimulationEngine {
         pin: error.args[0] ?? "desconocido",
         line: error.node?.startLine ?? null,
       };
+      if (error.callName === "digitalRead") {
+        const pin = String(error.args[0] ?? "desconocido");
+        const pinState = this.getPinState(pin);
+        pinState.lastRead = "Desconocido (entrada pendiente)";
+        pinState.lastOperation = "Lectura pendiente: esperando valor simulado";
+        pinState.lastLine = error.node?.startLine ?? null;
+        pinState.lastStep = this.state.step + 1;
+      }
       this.state.status = "waiting-input";
       this.state.message = `${error.message} Pin: ${String(error.args[0] ?? "desconocido")}.`;
       this.notify();
@@ -322,6 +333,16 @@ export class SimulationEngine {
     return this.getState();
   }
 
+  clearConsole() {
+    this.state.serialOutput = "";
+    this.state.events = [];
+    for (const snapshot of this.history) {
+      snapshot.serialOutput = "";
+      snapshot.events = [];
+    }
+    this.notify();
+  }
+
   createContext() {
     return {
       scopes: this.state.scopes,
@@ -341,38 +362,156 @@ export class SimulationEngine {
     }
   }
 
-  simulateArduinoCall(name, args, node) {
+  simulateArduinoCall(name, args, node, argumentResults = []) {
     if (SENSOR_CALLS.has(name)) {
       const pending = this.state.pendingInput;
       if (!pending || pending.callName !== name) throw new SimulationInputRequired(name, args, node);
       this.state.pendingInput = null;
       const displayed = name === "digitalRead" ? (pending.value ? "HIGH" : "LOW") : pending.value;
-      this.addEvent(`${name}(${String(args[0] ?? "?")}) → ${String(displayed)} (lectura simulada).`);
+      if (name === "digitalRead") {
+        const pin = String(args[0] ?? "?");
+        const state = this.getPinState(pin);
+        state.value = pending.value ? 1 : 0;
+        state.lastRead = displayed;
+        state.lastOperation = `Lectura simulada: ${displayed}`;
+        this.addEvent("pin", `[PIN ${pin}] Lectura simulada: ${displayed}`, node);
+      } else {
+        this.addEvent("system", `${name}(${String(args[0] ?? "?")}) → ${String(displayed)} (lectura simulada).`, node);
+      }
       return knownValue(pending.value, "number");
     }
     if (PIN_OUTPUT_CALLS.has(name)) {
-      const output = args[1] === 1 ? "HIGH" : args[1] === 0 ? "LOW" : String(args[1] ?? "?");
-      this.addEvent(`${name}: el programa solicita el valor ${output} en el pin ${String(args[0] ?? "?")}.`);
+      if (name === "analogWrite") {
+        const pin = argumentResults[0]?.known === false ? "desconocido" : String(args[0] ?? "?");
+        const value = argumentResults[1]?.known === false
+          ? `desconocido: ${argumentResults[1].reason}`
+          : String(args[1] ?? "?");
+        this.addEvent("system", `analogWrite: el programa solicita el valor ${value} en el pin ${pin}.`, node);
+        return unknownValue(null, "La escritura se registra como evento; no controla hardware.");
+      }
+      const pin = argumentResults[0]?.known === false ? null : String(args[0] ?? "?");
+      const output = argumentResults[1]?.known === false
+        ? null
+        : args[1] === 1 ? "HIGH" : args[1] === 0 ? "LOW" : null;
+      if (pin && pin !== "?") {
+        const state = this.getPinState(pin);
+        state.lastOperation = output ? `Estado ${output}` : "Escritura con valor desconocido";
+        state.value = output ? args[1] : null;
+        this.addEvent(
+          "pin",
+          output
+            ? `[PIN ${pin}] Estado ${output}`
+            : `[PIN ${pin}] Estado desconocido: ${argumentResults[1]?.reason ?? String(args[1] ?? "?")}`,
+          node,
+        );
+      } else {
+        this.addEvent("pin", "[PIN desconocido] Escritura no resuelta; no se actualizó ningún pin.", node);
+      }
       return unknownValue(null, "La escritura se registra como evento; no controla hardware.");
     }
     if (PIN_MODE_CALLS.has(name)) {
-      this.addEvent(`pinMode: el programa configura el pin ${String(args[0] ?? "?")} como ${String(args[1] ?? "?")}.`);
+      const pin = argumentResults[0]?.known === false ? null : String(args[0] ?? "?");
+      const mode = argumentResults[1]?.known === false ? null : String(args[1] ?? "?");
+      if (pin && pin !== "?") {
+        const state = this.getPinState(pin);
+        const supportedMode = ["OUTPUT", "INPUT", "INPUT_PULLUP"].includes(mode) ? mode : null;
+        state.mode = supportedMode;
+        state.lastOperation = supportedMode
+          ? `Configurado como ${supportedMode}`
+          : `Modo desconocido: ${argumentResults[1]?.reason ?? `${mode} no reconocido`}`;
+        this.addEvent(
+          "pin",
+          supportedMode
+            ? `[PIN ${pin}] Configurado como ${supportedMode}`
+            : `[PIN ${pin}] Modo desconocido: ${argumentResults[1]?.reason ?? `${mode} no reconocido`}`,
+          node,
+        );
+      } else {
+        this.addEvent("pin", "[PIN desconocido] Configuración no resuelta; no se actualizó ningún pin.", node);
+      }
       return unknownValue(null, "La configuración se registra como evento; no controla hardware.");
     }
     if (name === "delay") {
-      this.addEvent(`delay: espera simulada de ${String(args[0] ?? "?")} ms (sin bloquear la interfaz).`);
+      this.addEvent(
+        "system",
+        `delay: espera simulada de ${String(args[0] ?? "?")} ms (sin bloquear la interfaz).`,
+        node,
+      );
       return unknownValue(null, "La espera se registra como evento; no se ejecuta realmente.");
     }
+    if (name === SERIAL_BEGIN_CALL) {
+      const result = argumentResults[0];
+      const baudRate = result?.known === false || typeof args[0] !== "number" ? null : args[0];
+      this.state.serialBaudRate = Number.isFinite(baudRate) && baudRate > 0 ? baudRate : null;
+      const message = this.state.serialBaudRate
+        ? `[SERIAL] Velocidad configurada: ${this.state.serialBaudRate} baudios`
+        : `[SERIAL] Velocidad desconocida: ${result?.reason ?? String(args[0] ?? "?")}`;
+      this.addEvent("serial", message, node);
+      return unknownValue(null, "La velocidad serie se configura solo en la simulación.");
+    }
     if (SERIAL_CALLS.has(name)) {
-      this.addEvent(`Consola simulada: ${args.map(String).join(" ")}`);
+      const values = args.map((value, index) => {
+        const result = argumentResults[index];
+        return result?.known === false ? `[desconocido: ${result.reason}]` : String(value);
+      });
+      const text = values.join("");
+      const lineBreak = name === "Serial.println" ? "\n" : "";
+      this.state.serialOutput += text + lineBreak;
+      this.addEvent("serial", text || (lineBreak ? "" : "[sin contenido]"), node, {
+        lineBreak: name === "Serial.println",
+      });
       return unknownValue(null, "La salida se registra en la consola simulada.");
     }
     return unknownValue(null, `La llamada «${name}» no se ejecutó por seguridad.`);
   }
 
-  addEvent(message) {
-    this.state.events.push(message);
+  getPinState(pin) {
+    this.state.pins[pin] ??= {
+      pin,
+      mode: null,
+      value: null,
+      lastRead: null,
+      lastOperation: "Sin operaciones",
+      lastLine: null,
+      lastStep: 0,
+    };
+    return this.state.pins[pin];
+  }
+
+  addEvent(type, message, node = null, { step = this.state.step + 1, lineBreak = false } = {}) {
+    const graphNode = node ? this.resolveGraphNode(node) ?? this.resolveGraphNodeContaining(node) : null;
+    const event = {
+      id: `${step}:${this.state.events.length + 1}:${node?.id ?? "system"}`,
+      type,
+      message,
+      text: type === "serial" ? message : "",
+      lineBreak,
+      step,
+      line: node?.startLine ?? null,
+      astNodeId: node?.id ?? null,
+      nodeId: graphNode?.id ?? this.state.currentNodeId,
+      blockLabel: graphNode?.label ?? null,
+    };
+    this.state.events.push(event);
     if (this.state.events.length > 200) this.state.events.shift();
+    const pinMatch = /^\[PIN ([^\]]+)\]/.exec(message);
+    if (pinMatch && this.state.pins[pinMatch[1]]) {
+      this.state.pins[pinMatch[1]].lastLine = event.line;
+      this.state.pins[pinMatch[1]].lastStep = step;
+    }
+  }
+
+  resolveGraphNodeContaining(astNode) {
+    if (!Number.isInteger(astNode?.start) || !Number.isInteger(astNode?.end)) return null;
+    return this.diagram.nodes
+      .filter((node) =>
+        node.sourceNavigable &&
+        Number.isInteger(node.start) &&
+        Number.isInteger(node.end) &&
+        node.start <= astNode.start &&
+        node.end >= astNode.end,
+      )
+      .sort((left, right) => (left.end - left.start) - (right.end - right.start))[0] ?? null;
   }
 
   resolveGraphNode(astNode, preferredKinds = []) {
@@ -495,7 +634,7 @@ export class SimulationEngine {
           node,
           `Instrucción ${node.type} no simulada; se conserva el flujo secuencial.`,
         );
-        this.addEvent(`No simulado (línea ${node.startLine}): ${sourceText(node, this.source)}`);
+        this.addEvent("system", `No simulado (línea ${node.startLine}): ${sourceText(node, this.source)}`, node);
         return true;
       }
     }
@@ -523,7 +662,11 @@ export class SimulationEngine {
       const args = expression.arguments.map((argument) => evaluateExpression(argument, context));
       if (args.some((argument) => !argument.known)) {
         this.setCurrentNode(graphNode?.id ?? null, node, args.find((item) => !item.known).reason);
-        this.addEvent(`Línea ${node.startLine}: no se pudo simular la llamada a ${callName}() porque algún argumento es desconocido.`);
+        this.addEvent(
+          "system",
+          `Línea ${node.startLine}: no se pudo simular la llamada a ${callName}() porque algún argumento es desconocido.`,
+          node,
+        );
         return true;
       }
       const scope = { name: callName, variables: {} };
@@ -544,16 +687,31 @@ export class SimulationEngine {
         ? args.find((argument) => !argument.known).reason
         : "";
       const evaluatedArgs = args.map((argument) => argument.known ? argument.value : null);
-      const result = args.some((argument) => !argument.known)
+      const reportsUnknownValues = [
+        ...PIN_OUTPUT_CALLS,
+        ...PIN_MODE_CALLS,
+        ...SERIAL_CALLS,
+        SERIAL_BEGIN_CALL,
+      ].includes(callName);
+      const result = args.some((argument) => !argument.known) && !reportsUnknownValues
         ? unknownValue(null, detail)
-        : this.simulateArduinoCall(callName, evaluatedArgs, expression);
+        : this.simulateArduinoCall(callName, evaluatedArgs, expression, args);
       this.setCurrentNode(
         graphNode?.id ?? null,
         node,
-        result.known ? `${callName}() evaluada.` : `${callName}() no ejecutada: ${result.reason}`,
+        reportsUnknownValues
+          ? `${callName}() registrada en la simulación.`
+          : result.known ? `${callName}() evaluada.` : `${callName}() no ejecutada: ${result.reason}`,
       );
-      if (!result.known && ![...SENSOR_CALLS, ...PIN_OUTPUT_CALLS, ...PIN_MODE_CALLS, ...SERIAL_CALLS, "delay"].includes(callName)) {
-        this.addEvent(`No simulado (línea ${node.startLine}): ${result.reason}`);
+      if (!result.known && ![
+        ...SENSOR_CALLS,
+        ...PIN_OUTPUT_CALLS,
+        ...PIN_MODE_CALLS,
+        ...SERIAL_CALLS,
+        SERIAL_BEGIN_CALL,
+        "delay",
+      ].includes(callName)) {
+        this.addEvent("system", `No simulado (línea ${node.startLine}): ${result.reason}`, node);
       }
       return true;
     }
@@ -564,7 +722,7 @@ export class SimulationEngine {
       node,
       result.known ? `Expresión evaluada: ${String(result.value)}.` : `Expresión no evaluada: ${result.reason}`,
     );
-    if (!result.known) this.addEvent(`Línea ${node.startLine}: ${result.reason}`);
+    if (!result.known) this.addEvent("system", `Línea ${node.startLine}: ${result.reason}`, node);
     return true;
   }
 

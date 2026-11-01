@@ -66,7 +66,7 @@ describe("simulator", () => {
     engine.start();
     expect(engine.findVariable("led").scope.variables.led.value).toBe(13);
     runToStop(engine);
-    expect(engine.state.events.join("\n")).toContain("pin 13");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("PIN 13");
   });
 
   it("walks for, while, and do-while loops with an iteration and step limit", () => {
@@ -109,8 +109,8 @@ describe("simulator", () => {
     engine.start();
     expect(runToStop(engine).status).toBe("completed");
     expect(engine.findVariable("total").scope.variables.total.value).toBe(3);
-    expect(engine.state.events.join("\n")).toContain("HIGH");
-    expect(engine.state.events.join("\n")).not.toContain("LOW");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("HIGH");
+    expect(engine.state.events.map((event) => event.message).join("\n")).not.toContain("LOW");
   });
 
   it("repeats loop() and stops at the configured step limit", () => {
@@ -119,7 +119,7 @@ describe("simulator", () => {
     const state = runToStop(engine);
     expect(state.status).toBe("limit");
     expect(state.loopIterations["arduino-loop"]).toBeGreaterThan(0);
-    expect(state.events.filter((event) => event.includes("digitalWrite")).length).toBeGreaterThan(1);
+    expect(state.events.filter((event) => event.message.includes("PIN 13")).length).toBeGreaterThan(1);
   });
 
   it("simulates Arduino I/O as events and asks for sensor values instead of guessing", () => {
@@ -140,9 +140,9 @@ describe("simulator", () => {
     expect(engine.findVariable("sensor").scope.variables.sensor.value).toBe(700);
     runToStop(engine);
     expect(engine.state.status).toBe("completed");
-    expect(engine.state.events.join("\n")).toContain("digitalWrite");
-    expect(engine.state.events.join("\n")).toContain("espera simulada de 1000 ms");
-    expect(engine.state.events.join("\n")).toContain("Hola");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("PIN 13");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("espera simulada de 1000 ms");
+    expect(engine.state.serialOutput).toContain("Hola");
   });
 
   it("uses HIGH and LOW input for digitalRead in a condition", () => {
@@ -157,8 +157,8 @@ describe("simulator", () => {
     engine.provideInput("LOW");
     runToStop(engine);
     expect(engine.state.status).toBe("completed");
-    expect(engine.state.events.join("\n")).toContain("LOW");
-    expect(engine.state.events.join("\n")).not.toContain("solicita el valor HIGH");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("LOW");
+    expect(engine.state.events.map((event) => event.message).join("\n")).not.toContain("solicita el valor HIGH");
   });
 
   it("stops rather than choosing an unknown branch and can run user functions", () => {
@@ -171,7 +171,7 @@ void setup() { helper(); if (missingValue) { helper(); } }`;
     runToStop(engine);
     expect(engine.state.status).toBe("uncertain");
     expect(engine.state.message).toContain("No se puede determinar la rama");
-    expect(engine.state.events.join("\n")).toContain("digitalWrite");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("PIN 13");
   });
 
   it("allows an unknown declared variable to be initialized before retrying its condition", () => {
@@ -188,7 +188,7 @@ void setup() { helper(); if (missingValue) { helper(); } }`;
     engine.setVariable("input", "1");
     expect(engine.state.status).toBe("paused");
     expect(runToStop(engine).status).toBe("completed");
-    expect(engine.state.events.join("\n")).toContain("solicita el valor HIGH");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("PIN 13");
   });
 
   it("binds known arguments while stepping through a user-defined function", () => {
@@ -201,7 +201,7 @@ void setup() { setLed(7); }`;
     expect(engine.state.scopes.at(-1).variables.pin.value).toBe(7);
     runToStop(engine);
     expect(engine.state.status).toBe("completed");
-    expect(engine.state.events.join("\n")).toContain("pin 7");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("PIN 7");
   });
 
   it("invalidates old execution references and resets state", () => {
@@ -228,6 +228,316 @@ void setup() { setLed(7); }`;
     controller.run(100);
     vi.advanceTimersByTime(1000);
     expect(engine.state.status).toBe("completed");
+  });
+
+  it("configures Serial.begin with the simulated baud rate and records source location", () => {
+    const source = "void setup() {\n  Serial.begin(9600);\n}";
+    const { engine } = createEngine(source);
+    engine.start();
+    engine.stepForward();
+
+    expect(engine.state.serialBaudRate).toBe(9600);
+    expect(engine.state.events.at(-1)).toMatchObject({
+      type: "serial",
+      message: "[SERIAL] Velocidad configurada: 9600 baudios",
+      line: 2,
+      step: 1,
+    });
+    expect(engine.state.events.at(-1).nodeId).not.toBeNull();
+  });
+
+  it("preserves Serial.print and println string order and newline behavior", () => {
+    const source = `void setup() {
+  Serial.print("A");
+  Serial.print("B");
+  Serial.println("C");
+  Serial.println("D");
+}`;
+    const { engine } = createEngine(source);
+    engine.start();
+    runToStop(engine);
+
+    expect(engine.state.serialOutput).toBe("ABC\nD\n");
+    expect(engine.state.events.filter((event) => event.type === "serial").map((event) => event.message))
+      .toEqual(["A", "B", "C", "D"]);
+    expect(engine.state.events.filter((event) => event.type === "serial").map((event) => event.line))
+      .toEqual([2, 3, 4, 5]);
+  });
+
+  it("prints resolved variables and existing string concatenation expressions", () => {
+    const source = `void setup() {
+  int temperature = 23;
+  Serial.print("T=");
+  Serial.println(temperature + " C");
+}`;
+    const { engine } = createEngine(source);
+    engine.start();
+    runToStop(engine);
+
+    expect(engine.state.serialOutput).toBe("T=23 C\n");
+  });
+
+  it("shows unknown Serial values explicitly instead of inventing output", () => {
+    const { engine } = createEngine("void setup() { Serial.println(missingValue); }");
+    engine.start();
+    engine.stepForward();
+
+    expect(engine.state.serialOutput).toContain("[desconocido: La variable «missingValue» no está declarada");
+    expect(engine.state.events.at(-1).type).toBe("serial");
+    expect(engine.state.events.at(-1).line).toBe(1);
+  });
+
+  it.each([
+    ["OUTPUT", "OUTPUT"],
+    ["INPUT", "INPUT"],
+    ["INPUT_PULLUP", "INPUT_PULLUP"],
+  ])("tracks pinMode configured as %s", (mode, expectedMode) => {
+    const { engine } = createEngine(`void setup() { pinMode(4, ${mode}); }`);
+    engine.start();
+    engine.stepForward();
+
+    expect(engine.state.pins["4"]).toMatchObject({
+      pin: "4",
+      mode: expectedMode,
+      value: null,
+      lastOperation: `Configurado como ${expectedMode}`,
+      lastLine: 1,
+      lastStep: 1,
+    });
+    expect(engine.state.events.at(-1).message).toBe(`[PIN 4] Configurado como ${expectedMode}`);
+  });
+
+  it("reports unsupported pin modes without claiming that the pin was configured", () => {
+    const { engine } = createEngine("void setup() { pinMode(4, 7); }");
+    engine.start();
+    engine.stepForward();
+
+    expect(engine.state.pins["4"]).toMatchObject({
+      mode: null,
+      lastOperation: "Modo desconocido: 7 no reconocido",
+    });
+    expect(engine.state.events.at(-1).message).toBe("[PIN 4] Modo desconocido: 7 no reconocido");
+  });
+
+  it("tracks digitalWrite HIGH and LOW as reversible output states", () => {
+    const { engine } = createEngine(`void setup() {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+  digitalWrite(13, LOW);
+}`);
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+    expect(engine.state.pins["13"].value).toBe(1);
+    engine.stepForward();
+
+    expect(engine.state.pins["13"]).toMatchObject({
+      mode: "OUTPUT",
+      value: 0,
+      lastOperation: "Estado LOW",
+      lastLine: 4,
+      lastStep: 3,
+    });
+  });
+
+  it("clears a previously known pin level after a digitalWrite with an unknown value", () => {
+    const { engine } = createEngine(`void setup() {
+  digitalWrite(13, HIGH);
+  digitalWrite(13, missingValue);
+}`);
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+
+    expect(engine.state.pins["13"]).toMatchObject({
+      value: null,
+      lastOperation: "Escritura con valor desconocido",
+    });
+    expect(engine.state.events.at(-1).message).toContain("[PIN 13] Estado desconocido:");
+  });
+
+  it("uses only the supplied digitalRead value and shows an unknown pending input first", () => {
+    const { engine } = createEngine("void setup() {\n  int pressed = digitalRead(2);\n}");
+    engine.start();
+    engine.stepForward();
+
+    expect(engine.state.status).toBe("waiting-input");
+    expect(engine.state.pins["2"]).toMatchObject({
+      value: null,
+      lastRead: "Desconocido (entrada pendiente)",
+    });
+    expect(engine.state.events.some((event) => event.type === "pin")).toBe(false);
+
+    engine.provideInput("HIGH");
+    engine.stepForward();
+    expect(engine.state.pins["2"]).toMatchObject({
+      value: 1,
+      lastRead: "HIGH",
+      lastOperation: "Lectura simulada: HIGH",
+      lastLine: 2,
+    });
+    expect(engine.state.events.at(-1).message).toBe("[PIN 2] Lectura simulada: HIGH");
+  });
+
+  it("does not assume a digitalRead value for an unconfigured pin", () => {
+    const { engine } = createEngine("void setup() { int value = digitalRead(99); }");
+    engine.start();
+    engine.stepForward();
+    expect(engine.state.waitingInput.pin).toBe(99);
+    expect(engine.state.pins["99"].mode).toBeNull();
+    expect(engine.state.pins["99"].value).toBeNull();
+
+    engine.provideInput("LOW");
+    engine.stepForward();
+    expect(engine.state.pins["99"]).toMatchObject({ mode: null, value: 0, lastRead: "LOW" });
+  });
+
+  it("restores console and pin snapshots when navigating backward and forward", () => {
+    const { engine } = createEngine(`void setup() {
+  Serial.println("ready");
+  pinMode(7, OUTPUT);
+  digitalWrite(7, HIGH);
+}`);
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+    engine.stepForward();
+    expect(engine.state.serialOutput).toBe("ready\n");
+    expect(engine.state.pins["7"].value).toBe(1);
+    const eventCount = engine.state.events.length;
+
+    engine.stepBackward();
+    expect(engine.state.pins["7"].value).toBeNull();
+    expect(engine.state.serialOutput).toBe("ready\n");
+    engine.stepForward();
+    expect(engine.state.pins["7"].value).toBe(1);
+    expect(engine.state.events).toHaveLength(eventCount);
+    expect(new Set(engine.state.events.map((event) => event.id)).size).toBe(eventCount);
+
+    engine.stepBackward();
+    engine.stepBackward();
+    expect(engine.state.pins["7"]).toBeUndefined();
+    expect(engine.state.serialOutput).toBe("ready\n");
+    engine.stepBackward();
+    expect(engine.state.serialOutput).toBe("");
+  });
+
+  it("adds session markers on start and completion and removes them on restart", () => {
+    const { engine } = createEngine("void setup() { Serial.println(\"done\"); }");
+    engine.start();
+    expect(engine.state.events[0].message).toBe("[SIMULACIÓN INICIADA]");
+    runToStop(engine);
+    expect(engine.state.events.at(-1).message).toBe("[SIMULACIÓN FINALIZADA]");
+
+    engine.restart();
+    expect(engine.state.step).toBe(0);
+    expect(engine.state.serialOutput).toBe("");
+    expect(engine.state.events.map((event) => event.message)).toEqual(["[SIMULACIÓN INICIADA]"]);
+    expect(engine.state.pins).toEqual({});
+  });
+
+  it("clears console records without losing pin history when requested", () => {
+    const { engine } = createEngine("void setup() { pinMode(4, OUTPUT); Serial.print(\"x\"); }");
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+    expect(engine.state.pins["4"].mode).toBe("OUTPUT");
+    engine.clearConsole();
+
+    expect(engine.state.serialOutput).toBe("");
+    expect(engine.state.events).toEqual([]);
+    expect(engine.state.pins["4"].mode).toBe("OUTPUT");
+    engine.stepBackward();
+    expect(engine.state.events).toEqual([]);
+  });
+
+  it("invalidates console and pin state when the current source is replaced", () => {
+    const { engine } = createEngine(`void setup() {
+  Serial.begin(115200);
+  pinMode(13, OUTPUT);
+}`);
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+    engine.invalidate("El código cambió.");
+
+    expect(engine.state).toMatchObject({
+      status: "idle",
+      serialOutput: "",
+      serialBaudRate: null,
+      pins: {},
+      events: [],
+    });
+  });
+
+  it("keeps setup and loop outputs in independent simulation sessions", () => {
+    const source = `void setup() { Serial.println("setup"); digitalWrite(1, HIGH); }
+void loop() { Serial.println("loop"); digitalWrite(2, LOW); }`;
+    const setup = createEngine(source, "setup").engine;
+    setup.start();
+    runToStop(setup);
+    const setupOutput = setup.state.serialOutput;
+    const setupPins = { ...setup.state.pins };
+    const loop = createEngine(source, "loop").engine;
+    loop.start();
+    runToStop(loop, 4);
+
+    expect(setupOutput).toBe("setup\n");
+    expect(setupPins["1"].value).toBe(1);
+    expect(loop.state.serialOutput).toBe("loop\n");
+    expect(loop.state.pins["2"].value).toBe(0);
+    expect(loop.state.pins["1"]).toBeUndefined();
+  });
+
+  it("does not produce serial output for instructions in an unexecuted branch", () => {
+    const { engine } = createEngine(`void setup() {
+  if (false) {
+    Serial.println("not reached");
+  }
+  Serial.println("reached");
+}`);
+    engine.start();
+    runToStop(engine);
+
+    expect(engine.state.serialOutput).toBe("reached\n");
+    expect(engine.state.events.filter((event) => event.type === "serial").map((event) => event.message))
+      .toEqual(["reached"]);
+  });
+
+  it("updates output panels progressively during autoplay and stops changes on pause", () => {
+    vi.useFakeTimers();
+    const { engine } = createEngine(`void setup() {
+  Serial.println("one");
+  Serial.println("two");
+  Serial.println("three");
+}`);
+    const updates = [];
+    const controller = new SimulationController(engine, (state) => updates.push(state));
+    controller.start();
+    controller.run(100);
+    vi.advanceTimersByTime(110);
+    controller.pause();
+    const pausedStep = engine.state.step;
+    const pausedOutput = engine.state.serialOutput;
+    vi.advanceTimersByTime(1000);
+
+    expect(updates.some((state) => state.serialOutput === "one\n")).toBe(true);
+    expect(pausedOutput).toContain("one\n");
+    expect(engine.state.step).toBe(pausedStep);
+    expect(engine.state.serialOutput).toBe(pausedOutput);
+  });
+
+  it("records unsupported calls without executing C++ or invoking dynamic JavaScript", () => {
+    const source = "void setup() { system(\"not executed\"); }";
+    const { engine } = createEngine(source);
+    const before = globalThis.__arduinoFlowchartTest;
+    engine.start();
+    runToStop(engine);
+
+    expect(engine.state.status).toBe("completed");
+    expect(engine.state.events.map((event) => event.message).join("\n")).toContain("no se ejecutó por seguridad");
+    expect(globalThis.__arduinoFlowchartTest).toBe(before);
+    expect(engine.simulateArduinoCall.toString()).not.toMatch(/\beval\s*\(|\bnew\s+Function\b/);
   });
 
   it("highlights the current SVG node without changing editor-independent export content", () => {

@@ -33,7 +33,18 @@ export function createSimulatorPanel(panel, controller, onError = () => {}) {
   const variables = panel.querySelector("#simulation-variables");
   const condition = panel.querySelector("#simulation-condition");
   const iterations = panel.querySelector("#simulation-iterations");
-  const events = panel.querySelector("#simulation-events");
+  const consoleOutput = panel.querySelector("#simulation-console-output");
+  const consoleEmpty = panel.querySelector("#simulation-console-empty");
+  const eventLog = panel.querySelector("#simulation-event-log");
+  const serialSpeed = panel.querySelector("#simulation-serial-speed");
+  const pinList = panel.querySelector("#simulation-pin-list");
+  const pinsEmpty = panel.querySelector("#simulation-pins-empty");
+  const consoleTab = panel.querySelector("#simulation-console-tab");
+  const pinsTab = panel.querySelector("#simulation-pins-tab");
+  const consoleView = panel.querySelector("#simulation-console-view");
+  const pinsView = panel.querySelector("#simulation-pins-view");
+  const ioContent = panel.querySelector("#simulation-io-content");
+  const toggleIo = panel.querySelector("#simulation-toggle-io");
   const inputForm = panel.querySelector("#simulation-input-form");
   const inputLabel = panel.querySelector("#simulation-input-label");
   const inputValue = panel.querySelector("#simulation-input-value");
@@ -60,6 +71,41 @@ export function createSimulatorPanel(panel, controller, onError = () => {}) {
   run.addEventListener("click", () => perform(() => controller.run(Number(speed.value))));
   pause.addEventListener("click", () => controller.pause());
   restart.addEventListener("click", () => perform(() => controller.restart()));
+  panel.querySelector("#simulation-clear-console").addEventListener("click", () =>
+    perform(() => controller.clearConsole()),
+  );
+  toggleIo.addEventListener("click", () => {
+    ioContent.hidden = !ioContent.hidden;
+    toggleIo.setAttribute("aria-expanded", String(!ioContent.hidden));
+    toggleIo.textContent = ioContent.hidden ? "Mostrar panel" : "Ocultar panel";
+  });
+
+  function selectIoTab(tab) {
+    const showConsole = tab === consoleTab;
+    consoleTab.classList.toggle("is-active", showConsole);
+    pinsTab.classList.toggle("is-active", !showConsole);
+    consoleTab.setAttribute("aria-selected", String(showConsole));
+    pinsTab.setAttribute("aria-selected", String(!showConsole));
+    consoleTab.tabIndex = showConsole ? 0 : -1;
+    pinsTab.tabIndex = showConsole ? -1 : 0;
+    consoleView.hidden = !showConsole;
+    pinsView.hidden = showConsole;
+    consoleView.classList.toggle("is-active", showConsole);
+    pinsView.classList.toggle("is-active", !showConsole);
+  }
+
+  consoleTab.addEventListener("click", () => selectIoTab(consoleTab));
+  pinsTab.addEventListener("click", () => selectIoTab(pinsTab));
+  for (const [tab, other] of [[consoleTab, pinsTab], [pinsTab, consoleTab]]) {
+    tab.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft" || event.key === "Home" || event.key === "End") {
+        event.preventDefault();
+        const nextTab = event.key === "Home" ? consoleTab : event.key === "End" ? pinsTab : other;
+        selectIoTab(nextTab);
+        nextTab.focus();
+      }
+    });
+  }
   maxSteps.addEventListener("change", () => perform(() => controller.setMaxSteps(maxSteps.value)));
 
   inputForm.addEventListener("submit", (event) => {
@@ -166,18 +212,64 @@ export function createSimulatorPanel(panel, controller, onError = () => {}) {
       variables.append(table);
     }
 
-    events.replaceChildren();
+    consoleOutput.textContent = state.serialOutput;
+    consoleEmpty.hidden = Boolean(state.serialOutput);
+    consoleOutput.hidden = !state.serialOutput;
+    if (state.serialOutput) consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    serialSpeed.textContent = state.serialBaudRate
+      ? `Serial: ${state.serialBaudRate} baudios`
+      : "Serial: sin configurar";
+
+    eventLog.replaceChildren();
     if (!state.events.length) {
-      events.textContent = "Los eventos simulados aparecerán aquí.";
+      const empty = document.createElement("li");
+      empty.className = "simulation-io-empty";
+      empty.textContent = "Los eventos aparecerán cuando avance la simulación.";
+      eventLog.append(empty);
     } else {
-      const list = document.createElement("ol");
-      for (const message of state.events) {
+      for (const event of state.events) {
         const item = document.createElement("li");
-        item.textContent = message;
-        list.append(item);
+        item.className = "simulation-event";
+        item.dataset.type = event.type;
+        const location = document.createElement("span");
+        location.className = "simulation-event-location";
+        location.textContent = [
+          `Paso ${event.step}`,
+          event.line ? `línea ${event.line}` : "",
+          event.blockLabel ? `bloque: ${event.blockLabel}` : "",
+        ].filter(Boolean).join(" · ");
+        const message = document.createElement("span");
+        message.className = "simulation-event-message";
+        message.textContent = event.message;
+        item.append(location, message);
+        eventLog.append(item);
       }
-      events.append(list);
-      events.scrollTop = events.scrollHeight;
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    const pins = Object.values(state.pins);
+    pinList.replaceChildren();
+    pinsEmpty.hidden = pins.length > 0;
+    for (const pin of pins) {
+      const card = document.createElement("article");
+      card.className = "simulation-pin-card";
+      const heading = document.createElement("h4");
+      heading.textContent = `Pin ${pin.pin}`;
+      const mode = document.createElement("p");
+      mode.textContent = `Modo: ${pin.mode ?? "Desconocido"}`;
+      const value = document.createElement("p");
+      const logic = pin.value === 1 ? "HIGH" : pin.value === 0 ? "LOW" : "Desconocido";
+      value.textContent = `Estado lógico: ${logic}`;
+      value.dataset.state = logic.toLowerCase();
+      const operation = document.createElement("p");
+      operation.textContent = `Última operación: ${pin.lastOperation}`;
+      const location = document.createElement("p");
+      location.className = "simulation-pin-location";
+      location.textContent = pin.lastLine
+        ? `Paso ${pin.lastStep} · línea ${pin.lastLine}`
+        : "Sin operación registrada";
+      card.append(heading, mode, value, operation, location);
+      pinList.append(card);
     }
 
     const waiting = state.status === "waiting-input" && state.waitingInput;

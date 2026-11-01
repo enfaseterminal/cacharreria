@@ -48,6 +48,10 @@ export class SimulationController {
     this.engine.restart();
   }
 
+  clearConsole() {
+    this.engine.clearConsole();
+  }
+
   invalidate(message) {
     this.stopTimer();
     this.engine.invalidate(message);

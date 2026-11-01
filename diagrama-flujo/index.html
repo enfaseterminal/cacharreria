@@ -39,7 +39,7 @@
             <span class="theme-toggle-label">Tema oscuro</span>
           </button>
         </div>
-        <span class="version-label">FASE 6.5 · v0.6.5</span>
+        <span class="version-label">FASE 7 · v0.7.0</span>
       </header>
 
       <main class="workspace" data-mobile-view="editor">
@@ -270,13 +270,66 @@
                 <p id="simulation-condition">Todavía no se ha evaluado una condición.</p>
                 <p id="simulation-iterations">Sin iteraciones registradas.</p>
               </section>
-              <section class="simulation-state-section simulation-events-section" aria-labelledby="simulation-events-heading">
-                <h4 id="simulation-events-heading">Eventos simulados</h4>
-                <div class="simulation-events" id="simulation-events" aria-live="polite">
-                  Los eventos simulados aparecerán aquí.
-                </div>
-              </section>
             </div>
+            <section class="simulation-io-panel" id="simulation-io-panel" aria-label="Consola y monitor de pines">
+              <div class="simulation-io-toolbar">
+                <div class="simulation-io-tabs" role="tablist" aria-label="Paneles de simulación">
+                  <button
+                    class="simulation-io-tab is-active"
+                    id="simulation-console-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="simulation-console-view"
+                  >Consola</button>
+                  <button
+                    class="simulation-io-tab"
+                    id="simulation-pins-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="simulation-pins-view"
+                    tabindex="-1"
+                  >Pines</button>
+                </div>
+                <div class="simulation-io-actions">
+                  <span id="simulation-serial-speed">Serial: sin configurar</span>
+                  <button class="tool-button" id="simulation-clear-console" type="button">Limpiar consola</button>
+                  <button
+                    class="tool-button"
+                    id="simulation-toggle-io"
+                    type="button"
+                    aria-expanded="true"
+                    aria-controls="simulation-io-content"
+                  >Ocultar panel</button>
+                </div>
+              </div>
+              <div id="simulation-io-content">
+                <section
+                  class="simulation-io-view is-active"
+                  id="simulation-console-view"
+                  role="tabpanel"
+                  aria-labelledby="simulation-console-tab"
+                >
+                  <pre class="simulation-console-output" id="simulation-console-output" aria-label="Salida de Serial"></pre>
+                  <p class="simulation-io-empty" id="simulation-console-empty">La consola aparecerá aquí cuando el programa envíe datos por Serial.</p>
+                  <h4 class="simulation-event-heading">Registro cronológico</h4>
+                  <ol class="simulation-event-log" id="simulation-event-log" aria-live="polite">
+                    <li class="simulation-io-empty">Los eventos aparecerán cuando avance la simulación.</li>
+                  </ol>
+                </section>
+                <section
+                  class="simulation-io-view"
+                  id="simulation-pins-view"
+                  role="tabpanel"
+                  aria-labelledby="simulation-pins-tab"
+                  hidden
+                >
+                  <p class="simulation-io-empty" id="simulation-pins-empty">Los pines aparecerán al ejecutar instrucciones pinMode(), digitalWrite() o digitalRead().</p>
+                  <div class="simulation-pin-list" id="simulation-pin-list"></div>
+                </section>
+              </div>
+            </section>
           </section>
         </section>
       </main>
