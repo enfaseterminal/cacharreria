@@ -14,7 +14,7 @@ function createMemoryStorage() {
 function createRoot() {
   const root = document.createElement("section");
   root.innerHTML = `
-    <svg id="circuit-canvas"></svg>
+    <svg id="circuit-canvas" viewBox="0 0 800 490"></svg>
     <div id="circuit-component-list"></div>
     <ul id="circuit-wire-list"></ul>
     <section id="circuit-properties"></section>
@@ -110,5 +110,25 @@ describe("circuit lab interface", () => {
     expect(led.dataset.state).toBe("on");
     expect(led.getAttribute("aria-label")).toContain("estado on");
     expect(led.getAttribute("aria-label")).toContain("pin 13");
+  });
+
+  it("exports a styled clone of the actual laboratory SVG without changing the displayed mount", () => {
+    const root = createRoot();
+    const model = createCircuitModel(createMemoryStorage());
+    model.loadDemo();
+    const lab = createCircuitLab(root, model);
+    const visibleCanvas = root.querySelector("#circuit-canvas");
+    visibleCanvas.querySelector(".circuit-uno").style.fill = "#237bba";
+    const exported = lab.getSvgForExport();
+
+    expect(exported).not.toBe(visibleCanvas);
+    expect(exported.getAttribute("viewBox")).toBe("0 0 800 490");
+    expect(exported.querySelectorAll(".circuit-wire")).toHaveLength(3);
+    expect(exported.querySelectorAll(".circuit-component")).toHaveLength(2);
+    expect(exported.querySelector(".circuit-component-label").textContent).toContain("220 Ω");
+    expect(exported.querySelector(".circuit-breadboard").style.fill).toBe("#f7f1df");
+    expect(exported.querySelector(".circuit-component-label").style.fill).toBe("#566276");
+    expect(visibleCanvas.querySelectorAll(".circuit-wire")).toHaveLength(3);
+    expect(exported.querySelector(".circuit-uno").getAttribute("style")).toContain("fill:#237bba");
   });
 });

@@ -39,7 +39,7 @@
             <span class="theme-toggle-label">Tema oscuro</span>
           </button>
         </div>
-        <span class="version-label">FASE 8 · v0.8.0</span>
+        <span class="version-label" data-app-version="0.8.5">FASE 8.5 · v0.8.5</span>
       </header>
 
       <main class="workspace" data-mobile-view="editor">
@@ -465,6 +465,39 @@
         </div>
       </footer>
     </div>
+    <dialog class="pdf-export-dialog" id="pdf-export-dialog" aria-labelledby="pdf-export-heading">
+      <form id="pdf-export-form">
+        <div class="pdf-dialog-heading">
+          <span class="section-icon diagram-icon" aria-hidden="true">▤</span>
+          <div>
+            <h2 id="pdf-export-heading">Hoja técnica del proyecto</h2>
+            <p>Completa la ficha y selecciona las secciones que incluirá el PDF.</p>
+          </div>
+        </div>
+        <div class="pdf-project-fields">
+          <label for="pdf-project-name">Nombre del proyecto</label>
+          <input id="pdf-project-name" name="projectName" type="text" maxlength="120" autocomplete="off" />
+          <label for="pdf-project-author">Autor</label>
+          <input id="pdf-project-author" name="author" type="text" maxlength="120" autocomplete="name" />
+          <label for="pdf-project-date">Fecha</label>
+          <input id="pdf-project-date" name="date" type="date" required />
+          <label for="pdf-project-description">Descripción breve (opcional)</label>
+          <textarea id="pdf-project-description" name="description" rows="3" maxlength="500"></textarea>
+        </div>
+        <fieldset class="pdf-section-options">
+          <legend>Secciones del documento</legend>
+          <label><input type="checkbox" name="section-diagram" checked /> Diagrama de flujo</label>
+          <label><input type="checkbox" name="section-code" checked /> Código fuente</label>
+          <label><input type="checkbox" name="section-circuit" checked /> Montaje electrónico</label>
+          <label><input type="checkbox" name="section-components" checked /> Listado de componentes</label>
+          <label><input type="checkbox" name="section-connections" checked /> Conexiones y cableado</label>
+        </fieldset>
+        <div class="pdf-dialog-actions">
+          <button class="tool-button" type="button" id="cancel-pdf-export">Cancelar</button>
+          <button class="button button-primary" type="submit">Generar hoja técnica PDF</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

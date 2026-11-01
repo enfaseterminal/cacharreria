@@ -464,6 +464,50 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
   return {
     render,
     getModel: () => model,
+    getSvgForExport() {
+      const exported = canvas.cloneNode(true);
+      const sourceElements = [canvas, ...canvas.querySelectorAll("*")];
+      const exportElements = [exported, ...exported.querySelectorAll("*")];
+      const propertiesToCopy = [
+        "fill",
+        "stroke",
+        "stroke-width",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-dasharray",
+        "opacity",
+        "font-family",
+        "font-size",
+        "font-weight",
+        "text-anchor",
+      ];
+      sourceElements.forEach((element, index) => {
+        const computed = getComputedStyle(element);
+        const declarations = propertiesToCopy
+          .map((property) => {
+            let value = computed.getPropertyValue(property);
+            if (property === "font-weight" && /^\d+$/.test(value)) {
+              value = Number(value) >= 600 ? "700" : "400";
+            }
+            return [property, value];
+          })
+          .filter(([, value]) => value && value !== "none" && value !== "normal");
+        if (declarations.length) {
+          exportElements[index].setAttribute(
+            "style",
+            declarations.map(([property, value]) => `${property}:${value}`).join(";"),
+          );
+        }
+      });
+      exported.querySelectorAll(".is-selected").forEach((element) => element.classList.remove("is-selected"));
+      for (const board of exported.querySelectorAll(".circuit-breadboard")) {
+        board.style.setProperty("fill", "#f7f1df");
+        board.style.setProperty("stroke", "#d7cba8");
+      }
+      exported.querySelectorAll(".circuit-board-label, .circuit-pin-label, .circuit-component-label")
+        .forEach((label) => label.style.setProperty("fill", "#566276"));
+      return exported;
+    },
     updateSimulation(state) {
       currentSimulationInputs = { ...state.circuitInputs };
       const ledStates = model.getLedStates(state.pins, state.circuitInputs);

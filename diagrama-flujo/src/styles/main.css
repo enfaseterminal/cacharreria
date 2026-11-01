@@ -112,3 +112,101 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+.pdf-export-dialog {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(90vh, 900px);
+  overflow: auto;
+  padding: 24px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgb(15 23 42 / 28%);
+}
+
+.pdf-export-dialog::backdrop {
+  background: rgb(15 23 42 / 58%);
+}
+
+.pdf-export-dialog form {
+  display: grid;
+  gap: 20px;
+}
+
+.pdf-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pdf-dialog-heading h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.pdf-dialog-heading p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.pdf-project-fields {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(220px, 2fr);
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.pdf-project-fields label,
+.pdf-section-options legend {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.pdf-project-fields input,
+.pdf-project-fields textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.pdf-section-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.pdf-section-options legend {
+  padding: 0 6px;
+}
+
+.pdf-section-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdf-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 520px) {
+  .pdf-export-dialog {
+    padding: 18px;
+  }
+
+  .pdf-project-fields {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}

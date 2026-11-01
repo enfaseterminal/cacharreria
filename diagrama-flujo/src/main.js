@@ -22,6 +22,7 @@ import { createStatusPanel } from "./ui/status-panel.js";
 import { initializeTheme } from "./ui/theme.js";
 import { initializeToolbar } from "./ui/toolbar.js";
 import { exportPdf, exportPng, exportSvg } from "./export/export-manager.js";
+import { getApplicationUrl } from "./export/application-url.js";
 import { SimulationEngine } from "./simulator/simulation-engine.js";
 import { SimulationController } from "./simulator/simulation-controller.js";
 import { createSimulatorPanel } from "./ui/simulator-panel.js";
@@ -80,6 +81,8 @@ const exportMenu = document.querySelector("#export-menu");
 const exportButtons = [...document.querySelectorAll("[data-export-format]")];
 const exportBackground = document.querySelector("#export-background");
 const exportGrid = document.querySelector("#export-grid");
+const pdfExportDialog = document.querySelector("#pdf-export-dialog");
+const pdfExportForm = document.querySelector("#pdf-export-form");
 const simulatorPanelElement = document.querySelector("#simulator-panel");
 const selectionModel = createSelectionModel();
 let latestAnalysis = null;
@@ -566,6 +569,24 @@ exportMenu.addEventListener("click", async (event) => {
     includeBackground: exportBackground.checked,
     includeGrid: exportGrid.checked,
   };
+
+  if (format === "pdf") {
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+    const dateInput = document.querySelector("#pdf-project-date");
+    if (!dateInput.value) dateInput.value = today;
+    if (typeof pdfExportDialog.showModal !== "function") {
+      status.setStatus("Este navegador no permite abrir la ficha de exportación PDF.", "error");
+      return;
+    }
+    pdfExportDialog.showModal();
+    return;
+  }
+
   exportBusy = true;
   updateExportAvailability();
   diagramFunction.disabled = true;
@@ -574,11 +595,76 @@ exportMenu.addEventListener("click", async (event) => {
   try {
     if (format === "svg") await exportSvg(diagramSvg, diagram.bounds, diagram.functionName, options);
     else if (format === "png") await exportPng(diagramSvg, diagram.bounds, diagram.functionName, options);
-    else if (format === "pdf") await exportPdf(diagramSvg, diagram.bounds, diagram.functionName, options);
     else throw new Error(`Formato de exportación desconocido: ${format}`);
     status.setStatus(`Exportación ${format.toUpperCase()} completada: ${filename}.`, "success");
   } catch (error) {
     status.setStatus(`No se pudo exportar ${format.toUpperCase()}: ${error.message}`, "error");
+  } finally {
+    exportBusy = false;
+    diagramFunction.disabled = !generatedFlowcharts || generatedFlowcharts.diagrams.length < 2;
+    showComments.disabled = false;
+    updateExportAvailability();
+  }
+});
+
+document.querySelector("#cancel-pdf-export").addEventListener("click", () => {
+  pdfExportDialog.close();
+});
+
+pdfExportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const diagram = displayedDiagram?.id === selectedDiagramId ? displayedDiagram : null;
+  if (!diagram || generatedFlowcharts.source !== editor.getValue()) {
+    pdfExportDialog.close();
+    status.setStatus("Genera un diagrama actualizado antes de exportarlo.", "warning");
+    return;
+  }
+  const options = {
+    includeBackground: exportBackground.checked,
+    includeGrid: exportGrid.checked,
+    applicationUrl: getApplicationUrl(),
+    metadata: {
+      projectName: document.querySelector("#pdf-project-name").value,
+      author: document.querySelector("#pdf-project-author").value,
+      date: document.querySelector("#pdf-project-date").value,
+      description: document.querySelector("#pdf-project-description").value,
+      version: document.querySelector(".version-label")?.dataset.appVersion
+        ? `v${document.querySelector(".version-label").dataset.appVersion}`
+        : "",
+    },
+    sections: {
+      diagram: document.querySelector('[name="section-diagram"]').checked,
+      code: document.querySelector('[name="section-code"]').checked,
+      circuit: document.querySelector('[name="section-circuit"]').checked,
+      components: document.querySelector('[name="section-components"]').checked,
+      connections: document.querySelector('[name="section-connections"]').checked,
+    },
+    sourceCode: editor.getValue(),
+    circuitSvg: circuitLab.getSvgForExport(),
+    components: circuitModel.getComponents(),
+    wires: circuitModel.getWires(),
+  };
+  pdfExportDialog.close();
+  exportBusy = true;
+  updateExportAvailability();
+  diagramFunction.disabled = true;
+  showComments.disabled = true;
+  status.setStatus(`Preparando la hoja técnica PDF de ${diagram.title}…`, "warning");
+  try {
+    const pdfDiagramSvg = diagramSvg.cloneNode(true);
+    renderFlowchart(pdfDiagramSvg, displayedDiagram, { showComments: true });
+    const result = await exportPdf(
+      pdfDiagramSvg,
+      diagram.bounds,
+      diagram.functionName,
+      options,
+    );
+    status.setStatus(
+      `Hoja técnica PDF completada: ${result.filename} · ${result.pages} páginas.`,
+      "success",
+    );
+  } catch (error) {
+    status.setStatus(`No se pudo exportar PDF: ${error.message}`, "error");
   } finally {
     exportBusy = false;
     diagramFunction.disabled = !generatedFlowcharts || generatedFlowcharts.diagrams.length < 2;

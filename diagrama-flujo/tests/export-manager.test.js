@@ -11,6 +11,7 @@ import {
   sanitizeFilename,
   serializeSvg,
 } from "../src/export/export-manager.js";
+import { getApplicationUrl } from "../src/export/application-url.js";
 import { createSymbolLegend } from "../src/export/symbol-legend.js";
 import { generateFlowcharts } from "../src/flowchart/flow-generator.js";
 import { layoutDiagram } from "../src/flowchart/flow-layout.js";
@@ -62,9 +63,18 @@ function createPdfStub() {
     pages: 1,
     addPage: vi.fn(),
     svg: vi.fn(async () => {}),
+    setPage: vi.fn(),
     setFontSize: vi.fn(),
+    setFont: vi.fn(),
     setTextColor: vi.fn(),
+    setDrawColor: vi.fn(),
+    setLineWidth: vi.fn(),
+    line: vi.fn(),
     text: vi.fn(),
+    splitTextToSize: vi.fn((text, width) => {
+      const max = Math.max(1, Math.floor(width / 5));
+      return String(text).match(new RegExp(`.{1,${max}}`, "g")) ?? [""];
+    }),
     output: vi.fn(() => new Blob(["pdf"], { type: "application/pdf" })),
   };
   pdf.addPage.mockImplementation(() => {
@@ -323,7 +333,7 @@ void helper() { // helper note
     expect(sanitizeFilename("loop", "png")).toBe("loop.png");
   });
 
-  it("exports large diagrams to non-clipped PDF tiles and includes comments", async () => {
+  it("fits large diagrams proportionally on an independent technical sheet and includes comments", async () => {
     const statements = Array.from({ length: 240 }, (_, index) => `  work${index}();`).join("\n");
     const largeSource = `void setup() {\n  /* PDF\n     comment */\n${statements}\n}`;
     const { svg, diagram } = renderSource(largeSource);
@@ -337,21 +347,205 @@ void helper() { // helper note
 
     expect(result.filename).toBe("setup.pdf");
     expect(result.pages).toBeGreaterThan(1);
-    expect(pdf.svg).toHaveBeenCalledTimes(result.pages);
+    expect(pdf.svg).toHaveBeenCalledOnce();
     expect(pdf.addPage).toHaveBeenCalledTimes(result.pages - 1);
     expect(pdf.svg.mock.calls[0][0].querySelector(".flow-comment-text").textContent).toContain("PDF");
     expect(pdf.svg.mock.calls[0][0].querySelector(".flow-node").hasAttribute("data-node-id")).toBe(false);
-    expect(pdf.svg.mock.calls.at(-1)[0].textContent).toContain(
+    expect(pdf.svg.mock.calls[0][0].textContent).toContain(
       "Guía de símbolos del diagrama de flujo",
     );
-    expect(
-      [...pdf.svg.mock.calls.at(-1)[0].querySelectorAll(".flow-legend-footer")]
-        .map((line) => line.textContent)
-        .join(" "),
-    ).toContain("Consulta el código original para conocer todos los detalles de ejecución");
+    const renderBox = pdf.svg.mock.calls[0][1];
+    expect(renderBox.width / renderBox.height).toBeCloseTo(
+      diagram.bounds.width / diagram.bounds.height,
+      2,
+    );
     expect(createUrl).toHaveBeenCalledWith(expect.objectContaining({ type: "application/pdf" }));
     expect(pdf.output).toHaveBeenCalledWith("blob");
     vi.runOnlyPendingTimers();
+  });
+
+  it("includes the selected technical-sheet sections, project metadata, circuit image, and repeated URL", async () => {
+    const { svg, diagram } = renderSource(source);
+    const circuitSvg = document.createElementNS(SVG_NS, "svg");
+    circuitSvg.setAttribute("viewBox", "0 0 800 490");
+    circuitSvg.setAttribute("width", "800");
+    circuitSvg.setAttribute("height", "490");
+    circuitSvg.append(document.createElementNS(SVG_NS, "text"));
+    circuitSvg.firstChild.textContent = "Arduino Uno · protoboard · LED";
+    const pdf = createPdfStub();
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:technical-pdf");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const longCode = Array.from({ length: 140 }, (_, index) => `void task${index}() { digitalWrite(13, HIGH); }`).join("\n");
+
+    const result = await exportPdf(
+      svg,
+      diagram.bounds,
+      "setup()",
+      {
+        metadata: {
+          projectName: "Luz de prueba",
+          author: "No especificado",
+          date: "2026-11-01",
+          description: "Control de un LED",
+          version: "v0.8.5",
+        },
+        sections: { diagram: true, code: true, circuit: true, components: true, connections: true },
+        sourceCode: longCode,
+        circuitSvg,
+        components: [
+          { id: "component-1", type: "resistor", properties: { ohms: 220, tolerance: 5, bandCount: 4 } },
+          { id: "component-2", type: "led", properties: { color: "rojo" } },
+        ],
+        wires: [{ from: "arduino:D13", to: "component-1:lead1" }],
+        applicationUrl: "https://example.test/cacharreria/diagrama-flujo/",
+      },
+      () => pdf,
+      renderPdfStub,
+    );
+
+    expect(result.pages).toBeGreaterThan(6);
+    expect(result.filename).toBe("Luz-de-prueba.pdf");
+    expect(pdf.svg).toHaveBeenCalledTimes(2);
+    expect(pdf.svg.mock.calls[0][0].textContent).toContain("setup()");
+    expect(pdf.svg.mock.calls[1][0].textContent).toContain("Arduino Uno · protoboard · LED");
+    const renderedSvgText = pdf.svg.mock.calls.map(([pageSvg]) => pageSvg.textContent).join(" ");
+    expect(renderedSvgText).toContain("Guía de símbolos del diagrama de flujo");
+    expect(renderedSvgText).toContain("Arduino Uno · protoboard · LED");
+    const allText = pdf.text.mock.calls.flatMap(([value]) => Array.isArray(value) ? value : [value]).join(" ");
+    expect(allText).toContain("Luz de prueba");
+    expect(allText).toContain("No especificado");
+    expect(allText).toContain("v0.8.5");
+    expect(allText).toContain("D13");
+    expect(allText).toContain("D1");
+    expect(allText).toContain("LED");
+    expect(pdf.setPage).toHaveBeenCalledTimes(result.pages);
+    expect(allText.match(/https:\/\/example\.test\/cacharreria\/diagrama-flujo\//g)).toHaveLength(result.pages);
+  });
+
+  it("normalizes the application URL for root, subdomain, Pages subdirectory, and index URLs", () => {
+    expect(getApplicationUrl("https://example.test/?mode=demo#top", "./")).toBe("https://example.test/");
+    expect(getApplicationUrl("https://app.example.test/flow/?mode=demo#top", "./"))
+      .toBe("https://app.example.test/flow/");
+    expect(getApplicationUrl("https://enfaseterminal.github.io/cacharreria/diagrama-flujo/?x=1#svg", "./"))
+      .toBe("https://enfaseterminal.github.io/cacharreria/diagrama-flujo/");
+    expect(getApplicationUrl("https://app.example.test/flow/index.html?mode=demo#top", "./"))
+      .toBe("https://app.example.test/flow/");
+    expect(getApplicationUrl("file:///tmp/index.html", "./")).toBe("URL no disponible");
+    expect(getApplicationUrl(null, "./")).toBe("URL no disponible");
+  });
+
+  it("omits every section disabled by the user", async () => {
+    const { svg, diagram } = renderSource(source);
+    const pdf = createPdfStub();
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:cover-only");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const result = await exportPdf(
+      svg,
+      diagram.bounds,
+      "setup",
+      {
+        sections: {
+          diagram: false,
+          code: false,
+          circuit: false,
+          components: false,
+          connections: false,
+        },
+        sourceCode: source,
+        circuitSvg: document.createElementNS(SVG_NS, "svg"),
+        components: [{ id: "component-1", type: "led", properties: { color: "rojo" } }],
+        wires: [{ from: "arduino:D13", to: "component-1:anode" }],
+      },
+      () => pdf,
+      renderPdfStub,
+    );
+
+    expect(result.pages).toBe(1);
+    expect(pdf.svg).not.toHaveBeenCalled();
+    expect(pdf.addPage).not.toHaveBeenCalled();
+    const outputText = pdf.text.mock.calls.flatMap(([value]) => Array.isArray(value) ? value : [value]).join(" ");
+    expect(outputText).not.toContain("Diagrama de flujo");
+    expect(outputText).not.toContain("Código fuente");
+    expect(outputText).not.toContain("Montaje electrónico");
+    expect(outputText).not.toContain("Listado de componentes");
+    expect(outputText).not.toContain("Conexiones y cableado");
+  });
+
+  it("keeps a long public URL complete inside the page footer", async () => {
+    const { svg, diagram } = renderSource(source);
+    const pdf = createPdfStub();
+    const applicationUrl = `https://subdomain.example.test/${"nested-route/".repeat(30)}`;
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:long-url");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    await exportPdf(
+      svg,
+      diagram.bounds,
+      "setup",
+      {
+        applicationUrl,
+        sections: { diagram: false, code: false, circuit: false, components: false, connections: false },
+      },
+      () => pdf,
+      renderPdfStub,
+    );
+
+    const footer = pdf.text.mock.calls
+      .filter(([, , , options]) => options?.align === "right")
+      .map(([text]) => String(text))
+      .join("");
+    expect(footer).toBe(applicationUrl);
+  });
+
+  it("generates the technical sheet with the actual jsPDF and SVG renderer packages", async () => {
+    const getBBoxDescriptor = Object.getOwnPropertyDescriptor(SVGElement.prototype, "getBBox");
+    Object.defineProperty(SVGElement.prototype, "getBBox", {
+      configurable: true,
+      value() {
+        return { x: 0, y: 0, width: this.textContent.length * 5, height: 12 };
+      },
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      font: "",
+      measureText: (text) => ({ width: String(text).length * 5 }),
+    });
+    const { svg, diagram } = renderSource(source);
+    const circuitSvg = document.createElementNS(SVG_NS, "svg");
+    circuitSvg.setAttribute("viewBox", "0 0 800 490");
+    circuitSvg.append(document.createElementNS(SVG_NS, "rect"));
+    circuitSvg.firstChild.setAttribute("width", "800");
+    circuitSvg.firstChild.setAttribute("height", "490");
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:actual-pdf");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    let result;
+    try {
+      result = await exportPdf(svg, diagram.bounds, "setup", {
+        metadata: { projectName: "Prueba de exportación", date: "2026-11-01" },
+        sections: { diagram: true, code: true, circuit: true, components: true, connections: true },
+        sourceCode: "void setup() {\n  pinMode(13, OUTPUT);\n}",
+        circuitSvg,
+        components: [{ id: "component-1", type: "led", properties: { color: "rojo" } }],
+        wires: [{ from: "arduino:D13", to: "component-1:anode" }],
+        applicationUrl: "https://example.test/flow/",
+      });
+    } finally {
+      if (getBBoxDescriptor) {
+        Object.defineProperty(SVGElement.prototype, "getBBox", getBBoxDescriptor);
+      } else {
+        delete SVGElement.prototype.getBBox;
+      }
+    }
+
+    expect(result.filename).toBe("Prueba-de-exportacion.pdf");
+    expect(result.pages).toBe(6);
+    expect(result.blob.type).toBe("application/pdf");
+    expect(result.blob.size).toBeGreaterThan(1_000);
   });
 
   it.each(["setup", "loop", "helper"])("exports the selected %s function as PDF", async (name) => {
@@ -406,6 +600,7 @@ void helper() { // helper note
     const context = {
       fillRect: vi.fn(),
       drawImage: vi.fn(),
+      fillText: vi.fn(),
       set fillStyle(value) {
         this.lastFill = value;
       },
@@ -449,7 +644,13 @@ void helper() { // helper note
     expect(canvas.width).toBe(0);
     expect(canvas.height).toBe(0);
     expect(context.drawImage).toHaveBeenCalled();
-    expect(context.lastFill).toBe("#ffffff");
+    expect(context.fillRect).toHaveBeenCalledTimes(2);
+    expect(context.fillText).toHaveBeenCalledWith(
+      expect.stringMatching(/^https?:\/\/localhost(?::\d+)?\/$/),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+    );
     expect(revokeUrl).toHaveBeenCalledWith("blob:svg");
   });
 
