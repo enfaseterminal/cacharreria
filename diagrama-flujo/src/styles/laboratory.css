@@ -1,0 +1,410 @@
+.laboratory-panel {
+  grid-column: 1 / -1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.laboratory-icon {
+  background: #e7f5f3;
+  color: #147d78;
+  font-size: 20px;
+}
+
+:root[data-theme="dark"] .laboratory-icon {
+  background: #203d3c;
+  color: #70d2c7;
+}
+
+.circuit-lab-content {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.8fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.circuit-assembly,
+.circuit-section {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.circuit-section-heading,
+.circuit-actions,
+.circuit-wire-form,
+.circuit-wire-item,
+.circuit-catalog {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.circuit-section-heading {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.circuit-section h3,
+.circuit-section-heading h3,
+.circuit-properties h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.circuit-section-heading p,
+.circuit-help,
+.circuit-disclaimer,
+.circuit-empty,
+.circuit-resistor-colors,
+.circuit-success,
+.circuit-warning-title {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.circuit-canvas-scroll {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.circuit-canvas {
+  display: block;
+  width: 100%;
+  min-width: 720px;
+  max-height: 520px;
+}
+
+.circuit-uno {
+  fill: #237bba;
+  stroke: #1b659b;
+  stroke-width: 2;
+}
+
+.circuit-uno-title,
+.circuit-label {
+  fill: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.circuit-chip {
+  fill: #253142;
+  stroke: #16202c;
+  stroke-width: 2;
+}
+
+.circuit-breadboard {
+  fill: #f7f1df;
+  stroke: #d7cba8;
+  stroke-width: 2;
+}
+
+:root[data-theme="dark"] .circuit-breadboard {
+  fill: #3a382f;
+  stroke: #6e6752;
+}
+
+.circuit-board-label,
+.circuit-pin-label {
+  fill: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.circuit-hole {
+  fill: #aba58f;
+  opacity: 0.75;
+}
+
+.circuit-pin-line,
+.circuit-lead {
+  stroke: #c9cdd4;
+  stroke-width: 3;
+}
+
+.circuit-terminal {
+  fill: #fff3a6;
+  stroke: #926e24;
+  stroke-width: 2;
+  cursor: crosshair;
+}
+
+.circuit-terminal:focus,
+.circuit-terminal:hover {
+  fill: #f1ab3e;
+  stroke: #734516;
+  stroke-width: 3;
+}
+
+.circuit-wire {
+  fill: none;
+  stroke: #db5b48;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.circuit-component {
+  cursor: pointer;
+}
+
+.circuit-component:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+
+.circuit-component.is-selected .circuit-component-label {
+  fill: var(--accent);
+  font-weight: 800;
+}
+
+.circuit-component-label {
+  fill: var(--text-primary);
+  font-size: 10px;
+  font-weight: 650;
+  pointer-events: none;
+}
+
+.circuit-led-bulb {
+  stroke: #7d3440;
+  stroke-width: 2;
+  opacity: 0.55;
+}
+
+.circuit-component-led[data-state="on"] .circuit-led-bulb {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.circuit-led-cathode {
+  stroke: #253142;
+  stroke-width: 3;
+}
+
+.circuit-led-rays {
+  fill: none;
+  stroke: #f4c844;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.circuit-resistor-body {
+  fill: #e6c997;
+  stroke: #8e7650;
+  stroke-width: 1.5;
+}
+
+.circuit-resistor-band {
+  pointer-events: none;
+}
+
+.circuit-button-body {
+  fill: #d55d57;
+  stroke: #8b3732;
+  stroke-width: 2;
+}
+
+.circuit-button-cap {
+  fill: #f2d5ce;
+}
+
+.circuit-component-button[data-state="pressed"] .circuit-button-cap {
+  fill: #f3c64e;
+}
+
+.circuit-component-button[data-state="pressed"] .circuit-button-body {
+  fill: #a53a35;
+}
+
+.circuit-pot-knob,
+.circuit-pot-wiper-line {
+  fill: #d5a333;
+  stroke: #8d6a1e;
+  stroke-width: 3;
+}
+
+.circuit-pot-track {
+  stroke: #8d6a1e;
+  stroke-width: 3;
+}
+
+.circuit-connection-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.circuit-wire-form {
+  align-items: end;
+}
+
+.circuit-field {
+  display: grid;
+  min-width: 140px;
+  flex: 1;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.circuit-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.circuit-wire-list,
+.circuit-component-list,
+.circuit-warnings ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.circuit-wire-item {
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.circuit-remove-wire {
+  min-height: 27px;
+}
+
+.circuit-warnings {
+  margin-top: 10px;
+  color: #8a5a14;
+  font-size: 10px;
+}
+
+:root[data-theme="dark"] .circuit-warnings {
+  color: #e1bb6b;
+}
+
+.circuit-warnings ul {
+  margin-top: 4px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.circuit-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.circuit-catalog {
+  margin: 8px 0;
+}
+
+.circuit-component-list {
+  margin-top: 8px;
+}
+
+.circuit-component-item {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  text-align: left;
+}
+
+.circuit-component-item.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#circuit-properties {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+#circuit-properties .circuit-help {
+  margin: 0;
+}
+
+.circuit-input-toggle {
+  justify-self: start;
+}
+
+.circuit-pot-value {
+  color: var(--text-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.circuit-disclaimer {
+  padding: 0 4px;
+}
+
+@media (max-width: 1100px) {
+  .circuit-lab-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .circuit-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .circuit-disclaimer {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace[data-mobile-view="editor"] .editor-panel,
+  .workspace[data-mobile-view="diagram"] .diagram-panel,
+  .workspace[data-mobile-view="laboratory"] .laboratory-panel {
+    display: flex;
+  }
+
+  .laboratory-panel .panel-heading {
+    align-items: flex-start;
+  }
+
+  .laboratory-panel .pending-badge {
+    white-space: normal;
+  }
+
+  .circuit-lab-content {
+    padding: 8px;
+  }
+
+  .circuit-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .circuit-section-heading {
+    align-items: flex-start;
+  }
+
+  .circuit-actions {
+    width: 100%;
+  }
+}

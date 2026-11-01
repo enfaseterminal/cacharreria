@@ -51,15 +51,17 @@ function variableValue(valueType, initializer, context) {
 }
 
 export class SimulationEngine {
-  constructor({ ast, source, diagram, onStateChange = () => {} }) {
+  constructor({ ast, source, diagram, circuit = null, onStateChange = () => {} }) {
     if (!ast || !Array.isArray(ast.body) || !diagram?.nodes || !diagram?.edges) {
       throw new TypeError("El simulador necesita un AST y un diagrama válidos.");
     }
     this.ast = ast;
     this.source = source;
     this.diagram = diagram;
+    this.circuit = circuit;
     this.onStateChange = onStateChange;
     this.state = createSimulationState();
+    this.state.circuitInputs = this.circuit?.getInitialInputs() ?? {};
     this.history = [];
     this.maxSteps = 500;
     this.functions = new Map(
@@ -127,6 +129,7 @@ export class SimulationEngine {
     }
     this.currentFunction = functionNode;
     this.state = createSimulationState();
+    this.state.circuitInputs = this.circuit?.getInitialInputs() ?? {};
     this.state.status = "paused";
     this.state.maxSteps = this.maxSteps;
     this.state.message = `Simulación iniciada en ${functionName}().`;
@@ -188,6 +191,23 @@ export class SimulationEngine {
     this.state.status = "paused";
     this.state.message = `Valor simulado recibido para ${callName}().`;
     this.notify();
+  }
+
+  setCircuitInput(componentId, value) {
+    if (!this.circuit || !Object.hasOwn(this.circuit.getInitialInputs(), componentId)) {
+      throw new Error("No se encontró la entrada virtual del componente.");
+    }
+    this.state.circuitInputs[componentId] = value;
+    this.notify();
+    if (this.state.status !== "waiting-input" || !this.state.waitingInput) return this.getState();
+    const { callName, pin } = this.state.waitingInput;
+    const reading = this.circuit.readInput(callName, pin, this.state.pins, this.state.circuitInputs);
+    if (!reading.known) return this.getState();
+    this.state.pendingInput = { callName, value: reading.value };
+    this.state.waitingInput = null;
+    this.state.status = "paused";
+    this.state.message = `Valor del componente virtual recibido para ${callName}().`;
+    return this.stepForward();
   }
 
   setVariable(name, rawValue) {
@@ -364,8 +384,20 @@ export class SimulationEngine {
 
   simulateArduinoCall(name, args, node, argumentResults = []) {
     if (SENSOR_CALLS.has(name)) {
-      const pending = this.state.pendingInput;
-      if (!pending || pending.callName !== name) throw new SimulationInputRequired(name, args, node);
+      let pending = this.state.pendingInput;
+      if (!pending || pending.callName !== name) {
+        const virtualInput = this.circuit?.readInput(
+          name,
+          args[0],
+          this.state.pins,
+          this.state.circuitInputs,
+        );
+        if (virtualInput?.known) {
+          pending = { callName: name, value: virtualInput.value };
+        } else {
+          throw new SimulationInputRequired(name, args, node);
+        }
+      }
       this.state.pendingInput = null;
       const displayed = name === "digitalRead" ? (pending.value ? "HIGH" : "LOW") : pending.value;
       if (name === "digitalRead") {

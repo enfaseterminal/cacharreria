@@ -1,6 +1,6 @@
 # Arduino Flowchart
 
-Aplicación web educativa para analizar sketches Arduino y generar diagramas de flujo SVG separados por función. **Versión 0.7.0:** incluye consola serie y monitor de pines enlazados a la simulación reversible. El proyecto funciona en el navegador, conserva el código de trabajo y no necesita backend.
+Aplicación web educativa para analizar sketches Arduino y generar diagramas de flujo SVG separados por función. **Versión 0.8.0:** añade un laboratorio visual con Arduino Uno, protoboard, LED, resistencias, pulsadores y potenciómetros conectados al motor de simulación reversible. El proyecto funciona en el navegador, conserva el código de trabajo y no necesita backend.
 
 ## Requisitos
 
@@ -26,7 +26,7 @@ npm run preview
 
 El código y la preferencia de tema se guardan en `localStorage`; las etiquetas visuales se guardan aparte y solo se restauran si el código fuente coincide exactamente. **Guardar** descarga el código original como archivo local; las etiquetas no lo modifican ni se incluyen en el archivo Arduino.
 
-## Uso de las fases 3 a 7
+## Uso de las fases 3 a 8
 
 1. Escribe o abre un sketch `.ino`, `.cpp` o `.h`; el ejemplo Blink sigue disponible.
 2. Pulsa **Generar diagrama**. Se analiza automáticamente el contenido actual si el análisis anterior no corresponde exactamente al código del editor.
@@ -43,10 +43,20 @@ El código y la preferencia de tema se guardan en `localStorage`; las etiquetas 
 13. En **Consola**, `Serial.begin()` configura la velocidad simulada; `Serial.print()` conserva el texto sin salto y `Serial.println()` termina la línea. La salida, los marcadores de inicio/fin y el registro cronológico se reconstruyen al avanzar y retroceder. Puedes copiar el texto y limpiar el historial visible. La pestaña **Pines** muestra modo, nivel lógico y última operación de cada pin usado; `INPUT_PULLUP` describe el modo configurado, pero no supone una lectura HIGH.
 14. Si aparece una solicitud de lectura de `digitalRead()` o `analogRead()`, introduce el valor simulado para continuar. El monitor indica que una entrada digital está pendiente y desconocida hasta recibirlo. Las variables desconocidas permiten definir un valor inicial; las condiciones desconocidas detienen la simulación sin elegir una rama arbitraria.
 15. El bloque activo y la línea de código se resaltan sin mover el cursor. `pinMode()`, `digitalWrite()`, `digitalRead()` y las instrucciones serie generan eventos solo cuando el motor alcanza y ejecuta la llamada.
+16. Abre **Laboratorio** para añadir componentes y conectar terminales seleccionándolos en el dibujo o mediante los selectores. El LED solo refleja una salida conocida si su ánodo está conectado a un pin OUTPUT a través de una resistencia y su cátodo a GND. Un pulsador a GND produce HIGH al estar liberado con `INPUT_PULLUP` y LOW al pulsarlo; en modo `INPUT` una entrada abierta queda desconocida. El potenciómetro solo alimenta `analogRead()` cuando el wiper está conectado a A0–A5 y sus extremos a 5V y GND.
+17. **Cargar ejemplo LED** prepara un montaje D13–resistencia de 220 Ω–LED–GND, carga el sketch de demostración y deja seleccionado `loop()`. El simulador ejecuta las funciones seleccionadas por separado; por eso el ejemplo también configura D13 en `loop()`. Avanza o retrocede para observar el estado reversible del LED.
 
 Los bloques muestran sus líneas de origen. Las decisiones distinguen las ramas **Sí/No**; los bucles tienen rutas de retorno; `setup()` se describe como inicialización de una sola ejecución y `loop()` muestra su repetición controlada por Arduino. Las llamadas desconocidas se conservan como bloques de llamada, no se ejecutan ni se tratan como errores por ser desconocidas. Si un bloque seleccionado queda fuera de la vista, el diagrama se centra en él manteniendo el nivel de zoom.
 
-El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una placa**. La consola y el monitor no usan Web Serial ni representan estados eléctricos reales; las lecturas se introducen explícitamente como datos simulados. `setup()` se recorre una vez; `loop()` vuelve a empezar hasta pausar o alcanzar el límite. Un `delay()` nunca bloquea el navegador.
+El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una placa**. La consola y el monitor no usan Web Serial ni representan estados eléctricos reales; las lecturas sin un componente conectado pueden introducirse manualmente y las que no se conocen no se inventan. El laboratorio solo valida rutas lógicas compatibles con los componentes incluidos; no calcula tensión, corriente, cortocircuitos ni tolerancias eléctricas. El montaje se guarda por separado del código y de las etiquetas en `localStorage`. `setup()` y `loop()` se recorren como sesiones independientes; `loop()` vuelve a empezar hasta pausar o alcanzar el límite. Un `delay()` nunca bloquea el navegador.
+
+### Laboratorio de circuitos
+
+- Usa **Añadir LED**, **Añadir resistencia**, **Añadir pulsador** o **Añadir potenciómetro**; selecciona un elemento para editar sus propiedades.
+- Conecta terminales con los selectores **Desde/Hasta** o seleccionando dos terminales del dibujo. Las conexiones y componentes se guardan automáticamente; **Vaciar montaje** limpia solo el circuito.
+- Las resistencias ofrecen valores habituales, tolerancias y bandas de 3, 4 o 5 colores. La tolerancia y el valor son descriptivos: no se calcula corriente.
+- El estado de la pulsación y el valor del mando del potenciómetro persisten como entradas virtuales. Durante la simulación, los cambios de entrada forman parte de los snapshots para que el retroceso los restaure.
+- Si el navegador no puede leer el almacenamiento o encuentra un formato de circuito incompatible, muestra un aviso y permite iniciar un montaje vacío. El código y las etiquetas visuales usan claves de almacenamiento independientes.
 
 ## Arquitectura
 
@@ -63,6 +73,9 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 - `src/simulator/simulation-engine.js`: recorre el AST, resuelve ramas y bucles, llama funciones auxiliares y genera eventos Arduino simulados.
 - `src/simulator/simulation-controller.js`: administra avance, retroceso, temporizador automático, pausa, reinicio e invalidación.
 - `src/ui/simulator-panel.js`: controles accesibles, variables, entradas de sensor, consola serie, registro de eventos y monitor de pines.
+- `src/lab/circuit-model.js`: catálogo, conexiones, persistencia versionada, resolución de entradas virtuales y estado derivado de LEDs.
+- `src/lab/circuit-lab.js`: protoboard SVG accesible, Arduino Uno, controles de componentes, propiedades y conexiones.
+- `src/styles/laboratory.css`: presentación adaptable del laboratorio y sus componentes.
 - `src/ui/diagram-selection.js`: resuelve posiciones del código contra bloques AST, mantiene el estado central de selección y presenta los detalles y comentarios asociados.
 - `src/editor/code-editor.js`: expone navegación a líneas y un resaltado decorativo que no modifica el documento ni la selección/cursor.
 - `src/main.js`: conecta el editor, análisis, generación, selector de función, estado de comentarios, selección sincronizada y controles de la vista.
@@ -72,7 +85,7 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 - `tests/flowchart.test.js`: pruebas estructurales del grafo, las conexiones y el layout.
 - `tests/svg-renderer.test.js`: pruebas DOM del SVG, comentarios, referencias a líneas y seguridad mediante jsdom.
 - `tests/export-manager.test.js`: contenido y dimensiones de SVG/PNG/PDF, símbolos reales de la guía, nombres seguros, PDF multipágina, errores, ausencia de solapamientos y limpieza de recursos.
-- `tests/simulator.test.js` y `tests/simulator-panel.test.js`: avance/retroceso, reinicio, límites, bucles, saltos, funciones, sensores, consola serie, monitor de pines, automatización, invalidación y controles accesibles.
+- `tests/simulator.test.js`, `tests/simulator-panel.test.js`, `tests/circuit-model.test.js`, `tests/circuit-lab.test.js` y `tests/lab-simulation.test.js`: simulador, consola, pines, catálogo, conexiones, persistencia, entradas virtuales, LED y restauración por snapshots.
 
 La exportación PDF usa `jspdf` para crear el documento y `svg2pdf.js` para dibujar el SVG como vectores en el navegador. Ambas dependencias se cargan de forma diferida al solicitar PDF; no aumentan el código necesario al abrir la aplicación. SVG y PNG no requieren bibliotecas externas de exportación.
 

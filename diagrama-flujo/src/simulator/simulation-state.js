@@ -18,6 +18,7 @@ export function createSimulationState() {
     serialOutput: "",
     serialBaudRate: null,
     pins: {},
+    circuitInputs: {},
     waitingInput: null,
     pendingInput: null,
     retryTask: null,
@@ -45,6 +46,7 @@ export function cloneSimulationState(state) {
     pins: Object.fromEntries(
       Object.entries(state.pins).map(([pin, stateForPin]) => [pin, { ...stateForPin }]),
     ),
+    circuitInputs: { ...state.circuitInputs },
     waitingInput: state.waitingInput ? { ...state.waitingInput } : null,
     pendingInput: state.pendingInput ? { ...state.pendingInput } : null,
     retryTask: state.retryTask ? { ...state.retryTask } : null,

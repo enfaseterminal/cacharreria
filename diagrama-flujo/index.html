@@ -39,7 +39,7 @@
             <span class="theme-toggle-label">Tema oscuro</span>
           </button>
         </div>
-        <span class="version-label">FASE 7 · v0.7.0</span>
+        <span class="version-label">FASE 8 · v0.8.0</span>
       </header>
 
       <main class="workspace" data-mobile-view="editor">
@@ -49,6 +49,9 @@
           </button>
           <button class="mobile-tab" type="button" data-view="diagram" aria-pressed="false">
             Diagrama
+          </button>
+          <button class="mobile-tab" type="button" data-view="laboratory" aria-pressed="false">
+            Laboratorio
           </button>
         </nav>
 
@@ -331,6 +334,78 @@
               </div>
             </section>
           </section>
+        </section>
+
+        <section class="work-panel laboratory-panel" id="circuit-laboratory" aria-labelledby="laboratory-heading">
+          <div class="panel-heading">
+            <div class="panel-title">
+              <span class="section-icon laboratory-icon" aria-hidden="true">⌁</span>
+              <div>
+                <h2 id="laboratory-heading">Laboratorio</h2>
+                <p>Montaje visual conectado a la simulación educativa</p>
+              </div>
+            </div>
+            <span class="pending-badge" id="circuit-status">Añade componentes o carga el circuito de ejemplo.</span>
+          </div>
+          <div class="circuit-lab-content">
+            <section class="circuit-assembly" aria-labelledby="circuit-assembly-heading">
+              <div class="circuit-section-heading">
+                <div>
+                  <h3 id="circuit-assembly-heading">Montaje</h3>
+                  <p>Selecciona dos terminales para unirlos con un cable.</p>
+                </div>
+                <div class="circuit-actions">
+                  <button class="tool-button" id="circuit-load-demo" type="button">Cargar ejemplo LED</button>
+                  <button class="tool-button" id="circuit-clear" type="button">Vaciar montaje</button>
+                </div>
+              </div>
+              <div class="circuit-canvas-scroll">
+                <svg
+                  id="circuit-canvas"
+                  class="circuit-canvas"
+                  viewBox="0 0 800 490"
+                  role="group"
+                  aria-label="Montaje de Arduino y protoboard"
+                ></svg>
+              </div>
+              <div class="circuit-connection-editor">
+                <form id="circuit-wire-form" class="circuit-wire-form">
+                  <label class="circuit-field" for="circuit-wire-from">Desde
+                    <select class="circuit-select" id="circuit-wire-from" required>
+                      <option value="">Seleccionar terminal</option>
+                    </select>
+                  </label>
+                  <label class="circuit-field" for="circuit-wire-to">Hasta
+                    <select class="circuit-select" id="circuit-wire-to" required>
+                      <option value="">Seleccionar terminal</option>
+                    </select>
+                  </label>
+                  <button class="tool-button button-primary" type="submit">Conectar</button>
+                </form>
+                <ul class="circuit-wire-list" id="circuit-wire-list" aria-label="Conexiones actuales"></ul>
+              </div>
+              <div class="circuit-warnings" id="circuit-warnings" role="status" aria-live="polite"></div>
+            </section>
+            <aside class="circuit-sidebar" aria-label="Componentes y propiedades">
+              <section class="circuit-section">
+                <h3>Catálogo</h3>
+                <div class="circuit-catalog">
+                  <button class="tool-button" type="button" data-add-component="led">Añadir LED</button>
+                  <button class="tool-button" type="button" data-add-component="resistor">Añadir resistencia</button>
+                  <button class="tool-button" type="button" data-add-component="button">Añadir pulsador</button>
+                  <button class="tool-button" type="button" data-add-component="potentiometer">Añadir potenciómetro</button>
+                </div>
+                <div class="circuit-component-list" id="circuit-component-list" aria-label="Componentes del montaje"></div>
+              </section>
+              <section class="circuit-section" id="circuit-properties" aria-live="polite">
+                <h3>Propiedades</h3>
+                <p class="circuit-empty">Selecciona un componente en el montaje para ver sus propiedades.</p>
+              </section>
+              <p class="circuit-disclaimer">
+                Este laboratorio representa conexiones lógicas. No calcula corriente o tensión real, no ejecuta C++ y no controla hardware.
+              </p>
+            </aside>
+          </div>
         </section>
       </main>
 

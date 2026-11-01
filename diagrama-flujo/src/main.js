@@ -25,18 +25,39 @@ import { exportPdf, exportPng, exportSvg } from "./export/export-manager.js";
 import { SimulationEngine } from "./simulator/simulation-engine.js";
 import { SimulationController } from "./simulator/simulation-controller.js";
 import { createSimulatorPanel } from "./ui/simulator-panel.js";
+import { createCircuitModel } from "./lab/circuit-model.js";
+import { createCircuitLab } from "./lab/circuit-lab.js";
 import "./styles/main.css";
 import "./styles/layout.css";
 import "./styles/editor.css";
 import "./styles/diagram.css";
 import "./styles/simulator.css";
-import "./styles/simulator.css";
+import "./styles/laboratory.css";
 
 const CODE_STORAGE_KEY = "arduino-flowchart-code";
+const CIRCUIT_EXAMPLE = `void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  // La simulación recorre setup() y loop() como funciones independientes.
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  delay(1000);
+}`;
 const status = createStatusPanel(
   document.querySelector("#status-indicator"),
   document.querySelector("#status-label"),
   document.querySelector("#status-message"),
+);
+const circuitModel = createCircuitModel(
+  {
+    getItem: (key) => window.localStorage.getItem(key),
+    setItem: (key, value) => window.localStorage.setItem(key, value),
+  },
+  (error) => status.setStatus(error.message, "warning"),
 );
 const visualLabelStore = createVisualLabelStore(
   {
@@ -128,6 +149,36 @@ const editor = createCodeEditor(
   onEditorSelection,
 );
 visualLabelStore.setSource(editor.getValue());
+const circuitLab = createCircuitLab(
+  document.querySelector("#circuit-laboratory"),
+  circuitModel,
+  {
+    onChange(change) {
+      if (change.changeType === "input") {
+        if (simulationController) simulationController.setCircuitInput(
+          change.component.id,
+          change.component.type === "button"
+            ? change.component.properties.pressed
+            : change.component.properties.value,
+        );
+        return;
+      }
+      if (!simulationController) return;
+      const activeDiagram = generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
+      if (activeDiagram) configureSimulation(activeDiagram);
+    },
+    onLoadDemo() {
+      editor.setValue(CIRCUIT_EXAMPLE);
+      generateDiagram();
+      const loopDiagram = generatedFlowcharts?.diagrams.find((item) => item.functionName === "loop");
+      if (loopDiagram) {
+        diagramFunction.value = loopDiagram.id;
+        diagramFunction.dispatchEvent(new Event("change"));
+      }
+      status.setStatus("Ejemplo cargado. Pulsa Iniciar para recorrer loop() y ver el LED.", "success");
+    },
+  },
+);
 
 function indexAstNodes(ast) {
   const nodes = new Map();
@@ -283,12 +334,15 @@ function configureSimulation(diagram) {
     ast: latestAnalysis.ast,
     source: generatedFlowcharts.source,
     diagram,
+    circuit: circuitModel,
   });
   simulationController = new SimulationController(engine, (state) => {
     simulatorPanel.render(state);
     updateSimulationVisual(state);
+    circuitLab.updateSimulation(state);
   });
   simulatorPanel.render(engine.getState());
+  circuitLab.updateSimulation(engine.getState());
   lastSimulationNodeId = null;
   lastSimulationAstNodeId = null;
 }

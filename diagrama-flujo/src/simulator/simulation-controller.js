@@ -62,6 +62,10 @@ export class SimulationController {
     return this.engine.stepForward();
   }
 
+  setCircuitInput(componentId, value) {
+    return this.engine.setCircuitInput(componentId, value);
+  }
+
   setVariable(name, value) {
     this.engine.setVariable(name, value);
   }
