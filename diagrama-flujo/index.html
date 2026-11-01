@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Editor educativo para preparar y visualizar diagramas de flujo de código Arduino."
+    />
+    <meta name="theme-color" content="#f4f6fa" />
+    <title>Arduino Flowchart</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Arduino Flowchart, inicio">
+          <span class="brand-mark" aria-hidden="true">AF</span>
+          <span class="brand-name">Arduino <strong>Flowchart</strong></span>
+        </a>
+
+        <div class="topbar-actions" aria-label="Acciones del proyecto">
+          <button class="button button-subtle" id="new-project" type="button">
+            <span aria-hidden="true">＋</span> Nuevo proyecto
+          </button>
+          <button class="button button-subtle" id="open-code" type="button">
+            <span aria-hidden="true">↥</span> Abrir código
+          </button>
+          <button class="button button-primary button-save" id="save-code" type="button">
+            <span aria-hidden="true">↓</span> Guardar
+          </button>
+          <button
+            class="button button-icon theme-toggle"
+            id="theme-toggle"
+            type="button"
+            aria-label="Cambiar tema"
+            title="Cambiar tema"
+          >
+            <span aria-hidden="true">☾</span>
+            <span class="theme-toggle-label">Tema oscuro</span>
+          </button>
+        </div>
+        <span class="version-label">FASE 6 · v0.6.0</span>
+      </header>
+
+      <main class="workspace" data-mobile-view="editor">
+        <nav class="mobile-tabs" aria-label="Vista de trabajo">
+          <button class="mobile-tab is-active" type="button" data-view="editor" aria-pressed="true">
+            Editor Arduino
+          </button>
+          <button class="mobile-tab" type="button" data-view="diagram" aria-pressed="false">
+            Diagrama
+          </button>
+        </nav>
+
+        <section class="work-panel editor-panel" aria-labelledby="editor-heading">
+          <div class="panel-heading">
+            <div class="panel-title">
+              <span class="section-icon editor-icon" aria-hidden="true">&lt;/&gt;</span>
+              <div>
+                <h1 id="editor-heading">Editor Arduino</h1>
+                <p>Escribe o pega tu código fuente</p>
+              </div>
+            </div>
+            <span class="language-badge"><span aria-hidden="true"></span> C++ / Arduino</span>
+          </div>
+
+          <div class="editor-toolbar">
+            <div class="editor-toolbar-group">
+              <button class="tool-button" id="paste-code" type="button" title="Pegar desde el portapapeles">
+                <span aria-hidden="true">▣</span> Pegar
+              </button>
+              <button class="tool-button" id="load-example" type="button" title="Cargar ejemplo Arduino">
+                <span aria-hidden="true">▤</span> Ejemplo
+              </button>
+            </div>
+            <div class="editor-toolbar-group">
+              <button class="tool-button tool-button-danger" id="clear-code" type="button">
+                <span aria-hidden="true">⌫</span> Limpiar
+              </button>
+            </div>
+          </div>
+
+          <div class="editor-frame" id="editor-host" aria-label="Editor de código Arduino"></div>
+          <div class="editor-footer">
+            <span id="line-count">1 línea</span>
+            <span class="editor-preserve-note"><span aria-hidden="true">●</span> Comentarios conservados</span>
+          </div>
+          <input
+            id="file-input"
+            class="visually-hidden"
+            type="file"
+            accept=".ino,.cpp,.h,text/plain"
+            tabindex="-1"
+            aria-label="Seleccionar archivo Arduino"
+          />
+        </section>
+
+        <section class="work-panel diagram-panel" aria-labelledby="diagram-heading">
+          <div class="panel-heading">
+            <div class="panel-title">
+              <span class="section-icon diagram-icon" aria-hidden="true">◇</span>
+              <div>
+                <h2 id="diagram-heading">Diagrama de flujo</h2>
+                <p>Vista previa del programa</p>
+              </div>
+            </div>
+            <span class="pending-badge" id="diagram-status">
+              <span aria-hidden="true"></span><span id="diagram-status-label">Esperando generación</span>
+            </span>
+          </div>
+
+          <div class="diagram-toolbar" aria-label="Controles de vista del diagrama">
+            <div class="diagram-options">
+              <label class="diagram-select-label" for="diagram-function">Función</label>
+              <select id="diagram-function" class="diagram-select" disabled aria-label="Seleccionar función del diagrama"></select>
+              <label class="diagram-comments-toggle">
+                <input id="show-comments" type="checkbox" checked />
+                <span>Comentarios</span>
+              </label>
+            </div>
+            <span class="diagram-hint">Rueda / + / − para zoom · arrastra para desplazar · F ajustar · 0 centrar</span>
+            <div class="diagram-controls">
+              <button class="tool-button zoom-button" id="zoom-out" type="button" aria-label="Alejar" title="Alejar">−</button>
+              <span class="zoom-level" id="zoom-level" aria-live="polite">100%</span>
+              <button class="tool-button zoom-button" id="zoom-in" type="button" aria-label="Acercar" title="Acercar">＋</button>
+              <span class="control-divider" aria-hidden="true"></span>
+              <button class="tool-button" id="fit-diagram" type="button" title="Ajustar manteniendo el texto legible; desplaza para recorrer diagramas grandes">
+                Ajustar
+              </button>
+              <button class="tool-button" id="center-diagram" type="button" title="Centrar diagrama">
+                Centrar
+              </button>
+            </div>
+          </div>
+
+          <div class="diagram-canvas">
+            <svg
+              id="diagram-svg"
+              class="diagram-svg"
+              viewBox="-600 -400 1200 800"
+              role="group"
+              tabindex="0"
+              aria-keyshortcuts="+ - f 0"
+              aria-labelledby="svg-title svg-description"
+            >
+              <title id="svg-title">Área de visualización del diagrama de flujo</title>
+              <desc id="svg-description">
+                Introduce código Arduino y pulsa Generar diagrama para ver el flujo por funciones.
+              </desc>
+              <defs>
+                <pattern id="small-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <path d="M 24 0 L 0 0 0 24" class="grid-line" fill="none" stroke-width="1" />
+                </pattern>
+                <pattern id="large-grid" width="120" height="120" patternUnits="userSpaceOnUse">
+                  <rect width="120" height="120" fill="url(#small-grid)" />
+                  <path d="M 120 0 L 0 0 0 120" class="grid-line-major" fill="none" stroke-width="1" />
+                </pattern>
+              </defs>
+              <rect class="diagram-background" x="-2400" y="-1800" width="4800" height="3600" fill="url(#large-grid)" />
+              <g class="diagram-placeholder" aria-hidden="true">
+                <rect class="placeholder-icon-box" x="-32" y="-112" width="64" height="64" rx="18" />
+                <path class="placeholder-icon" d="M-11 -91h22M-11 -80h16M-11 -69h11" />
+                <text class="placeholder-title" x="0" y="-18" text-anchor="middle">Tu diagrama aparecerá aquí</text>
+                <text class="placeholder-copy" x="0" y="16" text-anchor="middle">
+                  Introduce código Arduino y pulsa Generar diagrama.
+                </text>
+                <text class="placeholder-copy" x="0" y="44" text-anchor="middle">
+                  El flujo se mostrará por funciones, con comentarios y líneas de origen.
+                </text>
+              </g>
+            </svg>
+          </div>
+          <aside
+            class="selection-details"
+            id="selection-details"
+            aria-labelledby="selection-type"
+            aria-live="polite"
+            aria-atomic="true"
+            hidden
+          >
+            <div class="selection-details-heading">
+              <div>
+                <h3 id="selection-type"></h3>
+                <p id="selection-range"></p>
+              </div>
+              <button
+                class="tool-button"
+                id="clear-selection"
+                type="button"
+                aria-label="Limpiar selección del diagrama"
+                title="Limpiar selección"
+              >
+                Limpiar
+              </button>
+            </div>
+            <pre class="selection-source" id="selection-source"></pre>
+            <div class="selection-comments" id="selection-comments-section">
+              <h4 id="selection-comments-heading" hidden>Comentarios asociados</h4>
+              <div id="selection-comments"></div>
+            </div>
+          </aside>
+          <section class="simulator-panel" id="simulator-panel" aria-labelledby="simulator-heading" hidden>
+            <div class="simulator-heading">
+              <div>
+                <h3 id="simulator-heading">Simulador paso a paso</h3>
+                <p>Recorre el AST sin ejecutar C++ ni controlar hardware.</p>
+              </div>
+              <span class="simulation-step" id="simulation-step">Paso 0 · límite 500</span>
+            </div>
+            <div class="simulator-controls" role="group" aria-label="Controles de simulación">
+              <button class="tool-button" id="simulation-start" type="button" disabled>Iniciar</button>
+              <button class="tool-button" id="simulation-previous" type="button" disabled>Paso anterior</button>
+              <button class="tool-button button-primary" id="simulation-next" type="button" disabled>Paso siguiente</button>
+              <button class="tool-button" id="simulation-run" type="button" disabled>Ejecutar</button>
+              <button class="tool-button" id="simulation-pause" type="button" disabled>Pausar</button>
+              <button class="tool-button" id="simulation-restart" type="button" disabled>Reiniciar</button>
+              <label class="simulation-setting">
+                Velocidad
+                <select id="simulation-speed" aria-label="Velocidad de ejecución automática">
+                  <option value="1000">Lenta</option>
+                  <option value="500" selected>Normal</option>
+                  <option value="200">Rápida</option>
+                </select>
+              </label>
+              <label class="simulation-setting">
+                Límite
+                <input id="simulation-max-steps" type="number" min="1" max="10000" value="500" aria-label="Límite máximo de pasos" />
+              </label>
+            </div>
+            <p class="simulation-status" id="simulation-status" data-state="idle" role="status" aria-live="polite">
+              Genera un diagrama para habilitar el simulador.
+            </p>
+            <form class="simulation-input-row" id="simulation-input-form" hidden>
+              <label id="simulation-input-label" for="simulation-input-value"></label>
+              <input id="simulation-input-value" type="text" autocomplete="off" />
+              <button class="tool-button button-primary" type="submit">Aplicar y avanzar</button>
+            </form>
+            <p class="simulation-error" id="simulation-error" role="alert" hidden></p>
+            <div class="simulation-current" id="simulation-current" aria-live="polite">
+              Inicia la simulación para ver la instrucción activa.
+            </div>
+            <div class="simulation-state-grid">
+              <section class="simulation-state-section" aria-labelledby="simulation-variables-heading">
+                <h4 id="simulation-variables-heading">Variables</h4>
+                <div id="simulation-variables"></div>
+              </section>
+              <section class="simulation-state-section" aria-labelledby="simulation-condition-heading">
+                <h4 id="simulation-condition-heading">Condiciones y bucles</h4>
+                <p id="simulation-condition">Todavía no se ha evaluado una condición.</p>
+                <p id="simulation-iterations">Sin iteraciones registradas.</p>
+              </section>
+              <section class="simulation-state-section simulation-events-section" aria-labelledby="simulation-events-heading">
+                <h4 id="simulation-events-heading">Eventos simulados</h4>
+                <div class="simulation-events" id="simulation-events" aria-live="polite">
+                  Los eventos simulados aparecerán aquí.
+                </div>
+              </section>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <section
+        class="diagnostics-panel"
+        id="analysis-results"
+        aria-label="Resultados del análisis"
+        hidden
+      ></section>
+
+      <footer class="bottom-bar">
+        <div class="bottom-actions">
+          <button class="button button-primary analyze-button" id="analyze-code" type="button">
+            <span aria-hidden="true">⌕</span> Analizar código
+          </button>
+          <button
+            class="button button-subtle"
+            id="generate-diagram"
+            type="button"
+            title="Analizar el código si es necesario y generar el diagrama SVG"
+          >
+            <span aria-hidden="true">◇</span> Generar diagrama
+          </button>
+          <details class="export-menu" id="export-menu">
+            <summary class="button button-subtle export-summary">
+              <span aria-hidden="true">⇧</span> Exportar
+            </summary>
+            <div class="export-menu-panel" role="group" aria-label="Opciones de exportación">
+              <label class="export-option">
+                <input id="export-background" type="checkbox" checked />
+                <span>Fondo blanco</span>
+              </label>
+              <label class="export-option">
+                <input id="export-grid" type="checkbox" />
+                <span>Incluir cuadrícula</span>
+              </label>
+              <button class="tool-button export-format" type="button" data-export-format="svg" disabled>
+                Exportar SVG
+              </button>
+              <button class="tool-button export-format" type="button" data-export-format="png" disabled>
+                Exportar PNG
+              </button>
+              <button class="tool-button export-format" type="button" data-export-format="pdf" disabled>
+                Exportar PDF
+              </button>
+            </div>
+          </details>
+        </div>
+        <div class="status-area">
+          <div class="status-indicator" id="status-indicator" data-kind="success">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="status-label">Listo</span>
+          </div>
+          <p id="status-message" role="status" aria-live="polite">
+            Introduce código Arduino y pulsa Analizar código para revisar su estructura.
+          </p>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

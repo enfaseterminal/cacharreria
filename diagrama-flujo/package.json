@@ -1,0 +1,27 @@
+{
+  "name": "arduino-flowchart",
+  "private": true,
+  "version": "0.6.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-cpp": "^6.0.2",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.5",
+    "@lezer/highlight": "^1.2.1",
+    "jspdf": "^4.2.1",
+    "svg2pdf.js": "^2.9.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vite": "^6.1.0",
+    "vitest": "^4.1.12"
+  }
+}

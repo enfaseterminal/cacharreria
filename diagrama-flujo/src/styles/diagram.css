@@ -1,0 +1,396 @@
+.diagram-panel {
+  position: relative;
+}
+
+.diagram-hint {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.diagram-options,
+.diagram-comments-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.diagram-options {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.diagram-select {
+  width: min(190px, 30vw);
+  min-width: 92px;
+  min-height: 29px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.diagram-select:disabled {
+  opacity: 0.6;
+}
+
+.diagram-comments-toggle {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.diagram-comments-toggle input {
+  accent-color: var(--accent);
+}
+
+.diagram-controls {
+  gap: 2px;
+}
+
+.zoom-button {
+  width: 28px;
+  padding: 0;
+  font-size: 15px;
+}
+
+.zoom-level {
+  min-width: 39px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.control-divider {
+  width: 1px;
+  height: 18px;
+  margin-inline: 4px;
+  background: var(--border);
+}
+
+.diagram-canvas {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--diagram-background);
+}
+
+.diagram-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.diagram-svg.is-panning {
+  cursor: grabbing;
+}
+
+.diagram-svg:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.flow-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.flow-node:focus-visible .flow-node-shape {
+  stroke-width: 3.5;
+  stroke-dasharray: 3 2;
+  filter: drop-shadow(0 0 2px var(--accent));
+}
+
+.flow-node.is-selected .flow-node-shape {
+  stroke-width: 3.5;
+  stroke-dasharray: 8 3;
+}
+
+.flow-node.is-selected .flow-node-label {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.selection-details {
+  max-height: 190px;
+  flex: 0 0 auto;
+  overflow: auto;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.selection-details[hidden] {
+  display: none;
+}
+
+.selection-details-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selection-details-heading h3,
+.selection-comments h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.selection-details-heading p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.selection-source,
+.selection-comment {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.selection-comments h4 {
+  margin-top: 8px;
+}
+
+.selection-comment {
+  margin-top: 5px;
+  padding-left: 9px;
+  border-left: 2px solid var(--flow-comment-stroke);
+  color: var(--text-secondary);
+}
+
+.grid-line {
+  stroke: var(--grid-line);
+  opacity: 0.74;
+}
+
+.grid-line-major {
+  stroke: var(--grid-line-major);
+  opacity: 0.75;
+}
+
+.diagram-background {
+  fill: var(--diagram-background);
+}
+
+.placeholder-icon-box {
+  fill: var(--accent-soft);
+}
+
+.placeholder-icon {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.placeholder-title {
+  fill: var(--text-primary);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.placeholder-copy {
+  fill: var(--text-secondary);
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+}
+
+.flowchart-heading {
+  pointer-events: none;
+}
+
+.flow-function-title {
+  fill: var(--text-primary);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.flow-function-description {
+  fill: var(--text-secondary);
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+}
+
+.flow-edge-path {
+  stroke: var(--flow-edge);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+:root {
+  --flow-edge: #778398;
+  --flow-process-fill: #ffffff;
+  --flow-process-stroke: #8390a3;
+  --flow-decision-fill: #fff7df;
+  --flow-decision-stroke: #ce9c39;
+  --flow-io-fill: #e8f5f2;
+  --flow-io-stroke: #278b7d;
+  --flow-terminal-fill: #dff3eb;
+  --flow-terminal-stroke: #2f9b72;
+  --flow-comment-fill: #fff8df;
+  --flow-comment-stroke: #c59c3e;
+}
+
+:root[data-theme="dark"] {
+  --flow-edge: #8593a6;
+  --flow-process-fill: #252e3b;
+  --flow-process-stroke: #66758a;
+  --flow-decision-fill: #3b3424;
+  --flow-decision-stroke: #bc9341;
+  --flow-io-fill: #203a39;
+  --flow-io-stroke: #49aa9b;
+  --flow-terminal-fill: #203b34;
+  --flow-terminal-stroke: #52b58d;
+  --flow-comment-fill: #3b3424;
+  --flow-comment-stroke: #bc9341;
+}
+
+.flow-arrow-head {
+  fill: var(--flow-edge);
+}
+
+.flow-edge-yes .flow-edge-path,
+.flow-edge-loop-back .flow-edge-path,
+.flow-edge-loop-repeat .flow-edge-path {
+  stroke: var(--accent);
+}
+
+.flow-edge-no .flow-edge-path,
+.flow-edge-loop-exit .flow-edge-path {
+  stroke: #c28139;
+}
+
+.flow-edge-loop-back .flow-edge-path,
+.flow-edge-loop-repeat .flow-edge-path {
+  stroke-dasharray: 6 4;
+}
+
+.flow-edge-label {
+  fill: var(--text-secondary);
+  stroke: var(--diagram-background);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.flow-node {
+  pointer-events: visiblePainted;
+}
+
+.flow-node-shape {
+  fill: var(--flow-process-fill);
+  stroke: var(--flow-process-stroke);
+  stroke-width: 1.8;
+}
+
+.flow-shape-start,
+.flow-shape-end {
+  fill: var(--flow-terminal-fill);
+  stroke: var(--flow-terminal-stroke);
+}
+
+.flow-shape-decision {
+  fill: var(--flow-decision-fill);
+  stroke: var(--flow-decision-stroke);
+}
+
+.flow-shape-input,
+.flow-shape-output {
+  fill: var(--flow-io-fill);
+  stroke: var(--flow-io-stroke);
+}
+
+.flow-shape-call {
+  stroke: var(--accent);
+  stroke-dasharray: 5 3;
+}
+
+.flow-shape-case,
+.flow-shape-connector {
+  fill: var(--surface);
+  stroke: var(--accent);
+}
+
+.flow-shape-comment,
+.flow-comment-shape {
+  fill: var(--flow-comment-fill);
+  stroke: var(--flow-comment-stroke);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+}
+
+.flow-node-label {
+  fill: var(--text-primary);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.flow-node-detail,
+.flow-node-source {
+  fill: var(--text-secondary);
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+}
+
+.flow-connector-label {
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+}
+
+.flow-comment-note {
+  pointer-events: none;
+}
+
+.flow-comment-text {
+  fill: var(--text-secondary);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .diagram-hint {
+    display: none;
+  }
+
+  .diagram-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .diagram-options {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+#diagram-status[data-state="ready"] > span:first-child {
+  background: #23a17e;
+}
+
+#diagram-status[data-state="stale"] > span:first-child {
+  background: #c85c55;
+}
+
+#diagram-status[data-state="empty"] > span:first-child {
+  background: #d89c42;
+}

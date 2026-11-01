@@ -1,0 +1,114 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #20283a;
+  background: #f3f5f9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --page-background: #f3f5f9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-subtle: #f8f9fc;
+  --text-primary: #20283a;
+  --text-secondary: #687286;
+  --text-muted: #9aa3b3;
+  --border: #e5e9f0;
+  --accent: #147d78;
+  --accent-hover: #0e6b67;
+  --accent-soft: #e7f5f3;
+  --editor-background: #ffffff;
+  --editor-gutter: #fafbfc;
+  --editor-active-line: #f4f7fa;
+  --selection-background: #cce8e4;
+  --syntax-keyword: #8251a8;
+  --syntax-type: #24769a;
+  --syntax-function: #136c82;
+  --syntax-variable: #303d50;
+  --syntax-string: #23804d;
+  --syntax-number: #bd5b2b;
+  --syntax-comment: #83909f;
+  --syntax-operator: #586579;
+  --grid-line: #e8ebf1;
+  --grid-line-major: #dfe4ec;
+  --diagram-background: #fafbfc;
+  --shadow: 0 2px 8px rgb(23 35 56 / 4%);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e9edf5;
+  background: #151a23;
+
+  --page-background: #151a23;
+  --surface: #1d2430;
+  --surface-raised: #222b38;
+  --surface-subtle: #1a212c;
+  --text-primary: #e9edf5;
+  --text-secondary: #a4aec0;
+  --text-muted: #778398;
+  --border: #303a49;
+  --accent: #55c5b8;
+  --accent-hover: #70d2c7;
+  --accent-soft: #203d3c;
+  --editor-background: #1a212c;
+  --editor-gutter: #1a212c;
+  --editor-active-line: #232d3a;
+  --selection-background: #345851;
+  --syntax-keyword: #c792ea;
+  --syntax-type: #82aaff;
+  --syntax-function: #89ddff;
+  --syntax-variable: #d6deeb;
+  --syntax-string: #c3e88d;
+  --syntax-number: #f78c6c;
+  --syntax-comment: #718096;
+  --syntax-operator: #b0bec5;
+  --grid-line: #272f3a;
+  --grid-line-major: #303947;
+  --diagram-background: #1a212c;
+  --shadow: 0 2px 10px rgb(0 0 0 / 14%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--page-background);
+  color: var(--text-primary);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+button {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

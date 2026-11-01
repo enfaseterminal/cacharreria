@@ -1,0 +1,46 @@
+.editor-frame {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  background: var(--editor-background);
+}
+
+.editor-frame .cm-editor {
+  min-height: 100%;
+}
+
+.editor-footer {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 13px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.editor-preserve-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-preserve-note > span {
+  color: #2ba17e;
+  font-size: 8px;
+}
+
+.cm-editor .cm-cursor {
+  border-left-color: var(--accent);
+}
+
+.cm-editor.cm-focused .cm-selectionBackground {
+  background: var(--selection-background) !important;
+}
+
+.cm-editor .cm-flowchart-highlight-line {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: inset 3px 0 var(--accent);
+}
