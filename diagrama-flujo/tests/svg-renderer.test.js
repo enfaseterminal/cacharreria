@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeSource } from "../src/analyzer/analyzer.js";
 import { generateFlowcharts } from "../src/flowchart/flow-generator.js";
 import { layoutDiagram } from "../src/flowchart/flow-layout.js";
+import { createVisualDiagram, createVisualLabelStore } from "../src/flowchart/visual-labels.js";
 import {
   initializeDiagramViewport,
   renderDiagramMessage,
@@ -191,6 +192,57 @@ describe("SVG renderer", () => {
       element.textContent.includes("<script>") || element.textContent.includes("<svg onload="),
     )).toBe(true);
     expect(document.defaultView.__flowInjected).toBeUndefined();
+  });
+
+  it("renders a custom visual label as safe SVG text without changing its original code label", () => {
+    const source = "void setup() { digitalWrite(LED_BUILTIN, HIGH); }";
+    const { diagram } = makeDiagram(source);
+    const node = diagram.nodes.find((item) => item.astType === "ExpressionStatement");
+    const store = createVisualLabelStore({
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    store.setSource(source);
+    const customLabel = "Encender el LED: «sí» & <ahora>";
+    store.setLabel(node, customLabel);
+    const presentation = createVisualDiagram(diagram, store, layoutDiagram);
+    const svg = createSvg();
+
+    renderFlowchart(svg, presentation);
+    const renderedNode = [...svg.querySelectorAll(".flow-node")].find(
+      (item) => item.dataset.nodeId === node.id,
+    );
+
+    expect(renderedNode.querySelector(".flow-node-label").textContent).toBe(customLabel);
+    expect(renderedNode.getAttribute("aria-label")).toContain(customLabel);
+    expect(renderedNode.querySelector("title").textContent).toContain(customLabel);
+    expect(svg.querySelector("script, foreignObject, iframe")).toBeNull();
+    expect(node.label).toContain("digitalWrite");
+  });
+
+  it("wraps custom connector labels inside a resized circular block", () => {
+    const source = "void setup() { if (ready) { work(); } }";
+    const { diagram } = makeDiagram(source);
+    const node = diagram.nodes.find((item) => item.kind === "connector");
+    const store = createVisualLabelStore({
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    store.setSource(source);
+    store.setLabel(node, "Reunir las ramas del flujo de control");
+    const presentation = createVisualDiagram(diagram, store, layoutDiagram);
+    const displayedNode = presentation.nodes.find((item) => item.id === node.id);
+    const svg = createSvg();
+
+    renderFlowchart(svg, presentation);
+
+    expect(displayedNode.shapeWidth).toBe(displayedNode.shapeHeight);
+    expect(displayedNode.labelLines.length).toBeGreaterThan(1);
+    const text = svg.querySelector(`[data-node-id="${node.id}"] .flow-connector-label`);
+    expect([...text.querySelectorAll("tspan")].map((span) => span.textContent).join(" "))
+      .toBe("Reunir las ramas del flujo de control");
   });
 
   it("replaces old graph content with a safe empty/error message", () => {

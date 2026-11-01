@@ -159,6 +159,51 @@
   overflow-wrap: anywhere;
 }
 
+.visual-label-editor {
+  display: grid;
+  gap: 6px;
+  margin-top: 9px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.visual-label-original {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.visual-label-original span {
+  color: var(--text-primary);
+}
+
+.visual-label-editor input {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.visual-label-editor input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.visual-label-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.visual-label-status {
+  min-height: 1em;
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .selection-comments h4 {
   margin-top: 8px;
 }

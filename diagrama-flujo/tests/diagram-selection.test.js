@@ -127,6 +127,10 @@ describe("editor and diagram selection", () => {
       ["h3", "selection-type"],
       ["p", "selection-range"],
       ["pre", "selection-source"],
+      ["span", "selection-original-label"],
+      ["input", "visual-label-input"],
+      ["button", "reset-visual-label"],
+      ["p", "visual-label-status"],
       ["h4", "selection-comments-heading"],
       ["div", "selection-comments"],
     ]) {
@@ -140,13 +144,62 @@ describe("editor and diagram selection", () => {
       startLine: 4,
       endLine: 4,
       sourceText: "pinMode(13, OUTPUT);",
+      label: "pinMode(13, OUTPUT)",
+      customVisualLabel: "Preparar pin 13",
+      hasCustomVisualLabel: true,
       comments: [{ text: comment }],
     });
 
     expect(container.hidden).toBe(false);
     expect(container.querySelector("#selection-type").textContent).toBe("ExpressionStatement");
     expect(container.querySelector("#selection-source").textContent).toBe("pinMode(13, OUTPUT);");
+    expect(container.querySelector("#selection-original-label").textContent).toBe("pinMode(13, OUTPUT)");
+    expect(container.querySelector("#visual-label-input").value).toBe("Preparar pin 13");
+    expect(container.querySelector("#reset-visual-label").disabled).toBe(false);
     expect(container.querySelector(".selection-comment").textContent).toBe(comment);
     expect(container.querySelector("#selection-comments-heading").hidden).toBe(false);
+  });
+
+  it("discards an unapplied draft when the selected node changes", () => {
+    const container = document.createElement("aside");
+    for (const [tag, id] of [
+      ["h3", "selection-type"],
+      ["p", "selection-range"],
+      ["pre", "selection-source"],
+      ["span", "selection-original-label"],
+      ["input", "visual-label-input"],
+      ["button", "reset-visual-label"],
+      ["p", "visual-label-status"],
+      ["h4", "selection-comments-heading"],
+      ["div", "selection-comments"],
+    ]) {
+      const element = document.createElement(tag);
+      element.id = id;
+      container.append(element);
+    }
+
+    renderSelectionDetails(container, {
+      astType: "ExpressionStatement",
+      kind: "call",
+      startLine: 2,
+      endLine: 2,
+      sourceText: "digitalWrite(13, HIGH);",
+      label: "digitalWrite(13, HIGH)",
+      customVisualLabel: "Encender",
+      hasCustomVisualLabel: true,
+    });
+    container.querySelector("#visual-label-input").value = "borrador sin aplicar";
+    renderSelectionDetails(container, {
+      astType: "ExpressionStatement",
+      kind: "call",
+      startLine: 3,
+      endLine: 3,
+      sourceText: "delay(1000);",
+      label: "delay(1000)",
+    });
+
+    expect(container.querySelector("#visual-label-input").value).toBe("");
+    expect(container.querySelector("#selection-original-label").textContent).toBe("delay(1000)");
+    expect(container.querySelector("#reset-visual-label").disabled).toBe(true);
   });
 });

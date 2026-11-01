@@ -4,6 +4,7 @@ import { blinkExample } from "./examples/arduino-examples.js";
 import { analyzeSource } from "./analyzer/analyzer.js";
 import { generateFlowcharts } from "./flowchart/flow-generator.js";
 import { layoutDiagram } from "./flowchart/flow-layout.js";
+import { createVisualDiagram, createVisualLabelStore } from "./flowchart/visual-labels.js";
 import {
   initializeDiagramViewport,
   renderDiagramMessage,
@@ -37,12 +38,23 @@ const status = createStatusPanel(
   document.querySelector("#status-label"),
   document.querySelector("#status-message"),
 );
+const visualLabelStore = createVisualLabelStore(
+  {
+    getItem: (key) => window.localStorage.getItem(key),
+    setItem: (key, value) => window.localStorage.setItem(key, value),
+    removeItem: (key) => window.localStorage.removeItem(key),
+  },
+  (error) => status.setStatus(`No se pudieron recuperar las etiquetas visuales: ${error.message}`, "warning"),
+);
 const analysisResults = document.querySelector("#analysis-results");
 const diagramSvg = document.querySelector("#diagram-svg");
 const diagramStatus = document.querySelector("#diagram-status");
 const diagramFunction = document.querySelector("#diagram-function");
 const showComments = document.querySelector("#show-comments");
 const selectionDetails = document.querySelector("#selection-details");
+const visualLabelForm = document.querySelector("#visual-label-form");
+const visualLabelInput = document.querySelector("#visual-label-input");
+const visualLabelStatus = document.querySelector("#visual-label-status");
 const exportMenu = document.querySelector("#export-menu");
 const exportButtons = [...document.querySelectorAll("[data-export-format]")];
 const exportBackground = document.querySelector("#export-background");
@@ -53,6 +65,7 @@ let latestAnalysis = null;
 let astNodesById = new Map();
 let analyzedSource = null;
 let generatedFlowcharts = null;
+let displayedDiagram = null;
 let selectedDiagramId = null;
 let exportBusy = false;
 let simulationController = null;
@@ -97,6 +110,7 @@ const editor = createCodeEditor(
   document.querySelector("#editor-host"),
   readSavedCode() ?? blinkExample,
   (code) => {
+    visualLabelStore.setSource(code);
     try {
       window.localStorage.setItem(CODE_STORAGE_KEY, code);
       saveWarningShown = false;
@@ -113,6 +127,7 @@ const editor = createCodeEditor(
   },
   onEditorSelection,
 );
+visualLabelStore.setSource(editor.getValue());
 
 function indexAstNodes(ast) {
   const nodes = new Map();
@@ -134,6 +149,10 @@ function indexAstNodes(ast) {
 
 function createBlockSelection(diagram, node, origin, editorLine = node.startLine) {
   const astNode = astNodesById.get(node.astNodeId);
+  const displayedNode =
+    displayedDiagram?.id === diagram.id
+      ? displayedDiagram.nodes.find((item) => item.id === node.id) ?? node
+      : node;
   const source = editor.getValue();
   const sourceText =
     node.sourceNavigable &&
@@ -149,6 +168,8 @@ function createBlockSelection(diagram, node, origin, editorLine = node.startLine
     astType: node.astType,
     kind: node.kind,
     label: node.label,
+    customVisualLabel: visualLabelStore.hasCustomLabel(node) ? visualLabelStore.getLabel(node) : "",
+    hasCustomVisualLabel: visualLabelStore.hasCustomLabel(node),
     sourceText,
     sourceNavigable: Boolean(node.sourceNavigable),
     startLine: node.startLine,
@@ -157,12 +178,12 @@ function createBlockSelection(diagram, node, origin, editorLine = node.startLine
     functionName: diagram.functionName,
     comments: node.comments,
     bounds: {
-      x: node.x,
-      y: node.y,
-      width: node.width,
-      height: node.height,
-      centerX: node.centerX,
-      centerY: node.centerY,
+      x: displayedNode.x,
+      y: displayedNode.y,
+      width: displayedNode.width,
+      height: displayedNode.height,
+      centerX: displayedNode.centerX,
+      centerY: displayedNode.centerY,
     },
   };
 }
@@ -222,7 +243,10 @@ function updateDiagramStatus(label, state) {
 }
 
 function updateSimulationVisual(state) {
-  const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
+  const diagram =
+    displayedDiagram?.id === selectedDiagramId
+      ? displayedDiagram
+      : generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
   if (!diagram || state.status === "idle") {
     highlightSimulationFlow(diagramSvg, null, null);
     lastSimulationNodeId = null;
@@ -270,7 +294,7 @@ function configureSimulation(diagram) {
 }
 
 function updateExportAvailability() {
-  const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
+  const diagram = displayedDiagram?.id === selectedDiagramId;
   const canExport = Boolean(diagram && generatedFlowcharts.source === editor.getValue());
   for (const button of exportButtons) button.disabled = !canExport || exportBusy;
   exportMenu.setAttribute("aria-busy", String(exportBusy));
@@ -281,6 +305,7 @@ function invalidateDiagram() {
   invalidateSimulation("El código cambió; vuelve a generar el diagrama para simularlo.");
   selectionModel.clear("code-change");
   generatedFlowcharts = null;
+  displayedDiagram = null;
   selectedDiagramId = null;
   diagramFunction.replaceChildren();
   diagramFunction.disabled = true;
@@ -320,20 +345,34 @@ function analyzeCurrentSource({ scroll = true } = {}) {
   return result;
 }
 
+function renderPresentationDiagram(diagram, { fit = false, preserveScale = true } = {}) {
+  displayedDiagram = createVisualDiagram(diagram, visualLabelStore, layoutDiagram);
+  const bounds = renderFlowchart(diagramSvg, displayedDiagram, { showComments: showComments.checked });
+  diagramViewport.setBounds(bounds, { fit, preserveScale });
+  const current = selectionModel.current;
+  if (current?.diagramId === diagram.id && !selectFlowNode(diagramSvg, current.diagramNodeId)) {
+    selectionModel.clear("comments-hidden");
+  }
+  if (simulationController) {
+    const state = simulationController.engine.getState();
+    highlightSimulationFlow(diagramSvg, state.currentNodeId, state.currentEdgeId);
+  }
+  return displayedDiagram;
+}
+
 function renderSelectedDiagram({ fit = true, preserveScale = false } = {}) {
   const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === diagramFunction.value);
   if (!diagram) return;
   selectedDiagramId = diagram.id;
-  const bounds = renderFlowchart(diagramSvg, diagram, { showComments: showComments.checked });
-  diagramViewport.setBounds(bounds, { fit, preserveScale });
+  const presentation = renderPresentationDiagram(diagram, { fit, preserveScale });
   configureSimulation(diagram);
   updateExportAvailability();
-  updateDiagramStatus(`${diagram.nodes.length} bloques · ${diagram.edges.length} conexiones`, "ready");
+  updateDiagramStatus(`${presentation.nodes.length} bloques · ${presentation.edges.length} conexiones`, "ready");
   const warningCount =
     (latestAnalysis?.diagnostics.filter((item) => item.severity === "warning").length ?? 0) +
     (generatedFlowcharts.warnings.length ?? 0);
   status.setStatus(
-    `${diagram.title}: ${diagram.nodes.length} bloques y ${diagram.edges.length} conexiones.${warningCount ? ` Diagrama parcial con ${warningCount} advertencia(s); consulta el diagnóstico.` : ""}`,
+    `${diagram.title}: ${presentation.nodes.length} bloques y ${presentation.edges.length} conexiones.${warningCount ? ` Diagrama parcial con ${warningCount} advertencia(s); consulta el diagnóstico.` : ""}`,
     warningCount ? "warning" : "success",
   );
 }
@@ -347,6 +386,7 @@ function generateDiagram() {
   const errors = analysis.diagnostics.filter((item) => item.severity === "error");
   if (errors.length) {
     generatedFlowcharts = null;
+    displayedDiagram = null;
     selectedDiagramId = null;
     diagramFunction.replaceChildren();
     diagramFunction.disabled = true;
@@ -370,6 +410,7 @@ function generateDiagram() {
 
     if (!result.diagrams.length) {
       selectedDiagramId = null;
+      displayedDiagram = null;
       diagramFunction.replaceChildren();
       diagramFunction.disabled = true;
       const bounds = renderDiagramMessage(
@@ -414,6 +455,7 @@ function generateDiagram() {
     renderSelectedDiagram({ fit: true });
   } catch (error) {
     generatedFlowcharts = null;
+    displayedDiagram = null;
     selectedDiagramId = null;
     diagramFunction.disabled = true;
     const bounds = renderDiagramMessage(
@@ -457,7 +499,7 @@ initializeToolbar(
 exportMenu.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-export-format]");
   if (!button || button.disabled || exportBusy) return;
-  const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
+  const diagram = displayedDiagram?.id === selectedDiagramId ? displayedDiagram : null;
   if (!diagram || generatedFlowcharts.source !== editor.getValue()) {
     updateExportAvailability();
     status.setStatus("Genera un diagrama actualizado antes de exportarlo.", "warning");
@@ -514,13 +556,44 @@ for (const tab of document.querySelectorAll(".mobile-tab")) {
 showComments.addEventListener("change", () => {
   const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === selectedDiagramId);
   if (!diagram) return;
-  renderFlowchart(diagramSvg, diagram, { showComments: showComments.checked });
-  const current = selectionModel.current;
-  if (current) {
-    const selected = selectFlowNode(diagramSvg, current.diagramNodeId);
-    if (!selected) selectionModel.clear("comments-hidden");
+  renderPresentationDiagram(diagram, { fit: false, preserveScale: true });
+});
+
+function applyVisualLabel(reset = false) {
+  const selection = selectionModel.current;
+  const diagram = generatedFlowcharts?.diagrams.find((item) => item.id === selection?.diagramId);
+  const node = diagram?.nodes.find((item) => item.id === selection?.diagramNodeId);
+  if (!selection || !diagram || !node) {
+    visualLabelStatus.textContent = "Selecciona un bloque del diagrama antes de editar su etiqueta.";
+    return;
   }
-  if (simulationController) updateSimulationVisual(simulationController.engine.getState());
+
+  try {
+    if (reset) visualLabelStore.resetLabel(node);
+    else visualLabelStore.setLabel(node, visualLabelInput.value);
+    renderPresentationDiagram(diagram, { fit: false, preserveScale: true });
+    const updatedSelection = createBlockSelection(
+      diagram,
+      node,
+      selection.origin ?? "diagram",
+      selection.editorLine,
+    );
+    renderSelectionDetails(selectionDetails, updatedSelection);
+    visualLabelStatus.textContent = updatedSelection.hasCustomVisualLabel
+      ? "Etiqueta visual aplicada. El código y la simulación no han cambiado."
+      : "Se muestra de nuevo la etiqueta original.";
+  } catch (error) {
+    visualLabelStatus.textContent = `No se pudo guardar la etiqueta: ${error.message}`;
+    status.setStatus(`No se pudo guardar la etiqueta visual: ${error.message}`, "error");
+  }
+}
+
+visualLabelForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  applyVisualLabel();
+});
+document.querySelector("#reset-visual-label").addEventListener("click", () => {
+  applyVisualLabel(true);
 });
 
 initializeTheme(document.querySelector("#theme-toggle"), (error) => {

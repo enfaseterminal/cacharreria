@@ -96,12 +96,20 @@ export function renderSelectionDetails(container, selection) {
   const title = container.querySelector("#selection-type");
   const range = container.querySelector("#selection-range");
   const source = container.querySelector("#selection-source");
+  const originalLabel = container.querySelector("#selection-original-label");
+  const visualLabel = container.querySelector("#visual-label-input");
+  const resetVisualLabel = container.querySelector("#reset-visual-label");
+  const visualLabelStatus = container.querySelector("#visual-label-status");
   const commentsHeading = container.querySelector("#selection-comments-heading");
   const comments = container.querySelector("#selection-comments");
 
   if (!selection) {
     container.hidden = true;
     source.textContent = "";
+    originalLabel.textContent = "";
+    visualLabel.value = "";
+    resetVisualLabel.disabled = true;
+    visualLabelStatus.textContent = "";
     comments.replaceChildren();
     return;
   }
@@ -111,6 +119,10 @@ export function renderSelectionDetails(container, selection) {
     ? `Línea ${selection.startLine}`
     : `Líneas ${selection.startLine}–${selection.endLine}`;
   source.textContent = selection.sourceText ?? selection.label ?? "";
+  originalLabel.textContent = selection.label ?? "";
+  visualLabel.value = selection.customVisualLabel ?? "";
+  resetVisualLabel.disabled = !selection.hasCustomVisualLabel;
+  visualLabelStatus.textContent = "";
   comments.replaceChildren();
   for (const comment of selection.comments ?? []) {
     const item = document.createElement("pre");

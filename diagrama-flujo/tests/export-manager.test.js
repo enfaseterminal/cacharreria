@@ -15,6 +15,7 @@ import { createSymbolLegend } from "../src/export/symbol-legend.js";
 import { generateFlowcharts } from "../src/flowchart/flow-generator.js";
 import { layoutDiagram } from "../src/flowchart/flow-layout.js";
 import { renderFlowchart } from "../src/flowchart/svg-renderer.js";
+import { createVisualDiagram, createVisualLabelStore } from "../src/flowchart/visual-labels.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -31,6 +32,29 @@ function renderSource(source, functionName = "setup") {
   renderFlowchart(svg, diagram);
   document.body.append(svg);
   return { svg, diagram };
+}
+
+function renderWithVisualLabel(source, label) {
+  const { svg, diagram } = renderSource(source);
+  const node = diagram.nodes.find((item) => item.astType === "ExpressionStatement");
+  const store = createVisualLabelStore({
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  });
+  store.setSource(source);
+  store.setLabel(node, label);
+  const presentation = createVisualDiagram(diagram, store, layoutDiagram);
+  renderFlowchart(svg, presentation);
+  return { svg, diagram: presentation };
+}
+
+function readBlobText(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsText(blob);
+  });
 }
 
 function createPdfStub() {
@@ -135,6 +159,84 @@ void helper() { // helper note
     expect(exported.querySelector("#flow-export-grid")).toBeNull();
     expect(exported.querySelector(".flowchart-content")).not.toBeNull();
     expect(exported.querySelector(".flow-symbol-legend")).toBeNull();
+  });
+
+  it("includes the effective visual label in the standalone SVG export", async () => {
+    const label = "Encender el LED";
+    const { svg, diagram } = renderWithVisualLabel(
+      "void setup() { digitalWrite(LED_BUILTIN, HIGH); }",
+      label,
+    );
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:custom-svg");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const result = await exportSvg(svg, diagram.bounds, "setup");
+
+    expect(await readBlobText(result.blob)).toContain(label);
+  });
+
+  it("includes the effective visual label in the rasterized PNG source", async () => {
+    const label = "Encender el LED";
+    const { svg, diagram } = renderWithVisualLabel(
+      "void setup() { digitalWrite(LED_BUILTIN, HIGH); }",
+      label,
+    );
+    const createdBlobs = [];
+    vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      createdBlobs.push(blob);
+      return `blob:custom-png-${createdBlobs.length}`;
+    });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      fillRect: vi.fn(),
+      drawImage: vi.fn(),
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => {
+      callback(new Blob(["png"], { type: "image/png" }));
+    });
+    vi.stubGlobal(
+      "Image",
+      class {
+        set src(value) {
+          this.url = value;
+          queueMicrotask(() => this.onload());
+        }
+      },
+    );
+
+    const result = await exportPng(svg, diagram.bounds, "setup");
+
+    expect(result.blob.type).toBe("image/png");
+    expect(await readBlobText(createdBlobs[0])).toContain(label);
+  });
+
+  it("includes the effective visual label in vector PDF pages", async () => {
+    const label = "Encender el LED";
+    const { svg, diagram } = renderWithVisualLabel(
+      "void setup() { digitalWrite(LED_BUILTIN, HIGH); }",
+      label,
+    );
+    const pdf = createPdfStub();
+    const createUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:custom-pdf");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    vi.useFakeTimers();
+
+    const result = await exportPdf(
+      svg,
+      diagram.bounds,
+      "setup",
+      {},
+      () => pdf,
+      renderPdfStub,
+    );
+
+    expect(result.blob.type).toBe("application/pdf");
+    expect(pdf.svg.mock.calls[0][0].textContent).toContain(label);
+    expect(createUrl).toHaveBeenCalledWith(expect.objectContaining({ type: "application/pdf" }));
+    vi.runOnlyPendingTimers();
   });
 
   it("uses only the implemented shapes and combines equivalent parallelograms", () => {

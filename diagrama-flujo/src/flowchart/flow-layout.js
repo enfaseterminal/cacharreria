@@ -35,11 +35,17 @@ function wrapText(value, maxCharacters) {
 }
 
 function measureNode(node) {
-  const labelLines = wrapText(node.label, 34);
+  const customConnector = node.kind === "connector" && node.visualLabelCustomized;
+  const labelLines = wrapText(node.label, customConnector ? 16 : 34);
   const detailLines = node.detail ? wrapText(node.detail, 36) : [];
   const labelMax = Math.max(0, ...labelLines.map((line) => line.length));
-  const shapeWidth = Math.max(156, Math.min(340, labelMax * 7.2 + 38));
-  const shapeHeight = Math.max(54, 25 + labelLines.length * 17 + (detailLines.length ? 15 + detailLines.length * 13 : 0));
+  const connectorDiameter = Math.max(labelMax * 7.2 + 20, labelLines.length * 17 + 20);
+  const shapeWidth = customConnector
+    ? Math.max(48, connectorDiameter)
+    : Math.max(156, Math.min(340, labelMax * 7.2 + 38));
+  const shapeHeight = customConnector
+    ? shapeWidth
+    : Math.max(54, 25 + labelLines.length * 17 + (detailLines.length ? 15 + detailLines.length * 13 : 0));
   const commentLayouts = (node.comments ?? []).map((comment) => {
     const lines = wrapText(comment.text, 36);
     return {

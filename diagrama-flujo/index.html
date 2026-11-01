@@ -39,7 +39,7 @@
             <span class="theme-toggle-label">Tema oscuro</span>
           </button>
         </div>
-        <span class="version-label">FASE 6 · v0.6.0</span>
+        <span class="version-label">FASE 6.5 · v0.6.5</span>
       </header>
 
       <main class="workspace" data-mobile-view="editor">
@@ -194,6 +194,27 @@
               </button>
             </div>
             <pre class="selection-source" id="selection-source"></pre>
+            <form class="visual-label-editor" id="visual-label-form">
+              <p class="visual-label-original">
+                Etiqueta original: <span id="selection-original-label"></span>
+              </p>
+              <label for="visual-label-input">Etiqueta visual personalizada</label>
+              <input
+                id="visual-label-input"
+                name="visualLabel"
+                type="text"
+                maxlength="160"
+                autocomplete="off"
+                placeholder="Usar la etiqueta original"
+              />
+              <div class="visual-label-actions">
+                <button class="tool-button button-primary" type="submit">Aplicar etiqueta</button>
+                <button class="tool-button" id="reset-visual-label" type="button" disabled>
+                  Restablecer original
+                </button>
+              </div>
+              <p class="visual-label-status" id="visual-label-status" role="status" aria-live="polite"></p>
+            </form>
             <div class="selection-comments" id="selection-comments-section">
               <h4 id="selection-comments-heading" hidden>Comentarios asociados</h4>
               <div id="selection-comments"></div>

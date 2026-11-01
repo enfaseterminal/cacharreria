@@ -293,12 +293,17 @@ function renderNode(parent, node, { showComments, tabIndex }) {
   addShape(group, node);
 
   if (node.kind === "connector") {
-    textElement(group, node.label, {
-      x: node.centerX,
-      y: node.y + node.shapeHeight / 2 + 5,
-      class: "flow-node-label flow-connector-label",
-      "text-anchor": "middle",
-    });
+    if (node.visualLabelCustomized) {
+      const firstY = node.centerY - ((node.labelLines.length - 1) * 17) / 2 + 5;
+      lineText(group, node.labelLines, node.centerX, firstY, 17, "flow-node-label flow-connector-label");
+    } else {
+      textElement(group, node.label, {
+        x: node.centerX,
+        y: node.y + node.shapeHeight / 2 + 5,
+        class: "flow-node-label flow-connector-label",
+        "text-anchor": "middle",
+      });
+    }
   } else {
     const labelHeight = node.labelLines.length * 17;
     const detailHeight = node.detailLines.length ? 15 + node.detailLines.length * 13 : 0;

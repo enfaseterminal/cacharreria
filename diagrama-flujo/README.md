@@ -24,9 +24,9 @@ npm run build
 npm run preview
 ```
 
-El código y la preferencia de tema se guardan en `localStorage`; **Guardar** descarga el código como archivo local.
+El código y la preferencia de tema se guardan en `localStorage`; las etiquetas visuales se guardan aparte y solo se restauran si el código fuente coincide exactamente. **Guardar** descarga el código original como archivo local; las etiquetas no lo modifican ni se incluyen en el archivo Arduino.
 
-## Uso de las fases 3 a 6
+## Uso de las fases 3 a 6.5
 
 1. Escribe o abre un sketch `.ino`, `.cpp` o `.h`; el ejemplo Blink sigue disponible.
 2. Pulsa **Generar diagrama**. Se analiza automáticamente el contenido actual si el análisis anterior no corresponde exactamente al código del editor.
@@ -35,12 +35,13 @@ El código y la preferencia de tema se guardan en `localStorage`; **Guardar** de
 5. Activa o desactiva **Comentarios** para mostrar sus anotaciones sin modificar el código ni el AST. Usa la rueda, los botones de zoom, **Ajustar**, **Centrar** y arrastra el SVG para desplazarlo.
 6. Si editas el código después de generar, el diagrama anterior se retira y se marca como desactualizado.
 7. Selecciona un bloque para ver su tipo, líneas, código y comentarios. Los bloques con correspondencia directa desplazan y resaltan la línea de CodeMirror sin cambiar el cursor ni el contenido.
-8. Coloca el cursor en una instrucción para resaltar el bloque correspondiente. Las decisiones se asocian a su condición; el editor no selecciona bloques sintéticos sin una referencia clara.
-9. Usa `Tab` para entrar al diagrama, las flechas arriba/abajo para recorrer los bloques y `Enter` o `Espacio` para seleccionar. Con el área SVG enfocada, `+`/`-` hacen zoom, `F` ajusta y `0` centra.
-10. Abre **Exportar** para descargar la función seleccionada como SVG, PNG o PDF. Cada formato añade al final una guía educativa con los símbolos realmente presentes en el diagrama, sus descripciones y una nota para consultar el código original. El menú permite incluir un fondo blanco y, opcionalmente, una cuadrícula. PNG se genera a 3× cuando el tamaño lo permite; el PDF es vectorial y crea páginas solapadas para diagramas grandes, colocando la guía en una página posterior cuando el diagrama necesita varias páginas. La exportación usa una copia aislada del SVG visible, conserva las anotaciones mostradas y no cambia el editor, la selección ni el diagrama.
-11. Genera el diagrama y usa el panel **Simulador paso a paso** para iniciar la función seleccionada, avanzar o retroceder, ejecutar automáticamente, pausar o reiniciar. Puedes ajustar la velocidad automática y el límite de pasos (1–10.000).
-12. Si aparece una solicitud de lectura de `digitalRead()` o `analogRead()`, introduce el valor simulado para continuar. Las variables desconocidas permiten definir un valor inicial; las condiciones desconocidas detienen la simulación sin elegir una rama arbitraria.
-13. El bloque activo y la línea de código se resaltan sin mover el cursor. Los eventos Arduino se muestran en **Eventos simulados**; por ejemplo, `digitalWrite()` registra la petición de salida, `delay()` registra la espera y `Serial.println()` escribe en la consola simulada.
+8. Cambia la **Etiqueta visual personalizada** en el panel de selección y pulsa **Aplicar etiqueta**. La etiqueta solo cambia la presentación del bloque y las exportaciones; el código, el AST y la simulación siguen usando el original. **Restablecer original** elimina la personalización. Un cambio exacto del código permite recuperar las etiquetas guardadas; si el código cambia, no se reasignan a nodos potencialmente distintos.
+9. Coloca el cursor en una instrucción para resaltar el bloque correspondiente. Las decisiones se asocian a su condición; el editor no selecciona bloques sintéticos sin una referencia clara.
+10. Usa `Tab` para entrar al diagrama, las flechas arriba/abajo para recorrer los bloques y `Enter` o `Espacio` para seleccionar. Con el área SVG enfocada, `+`/`-` hacen zoom, `F` ajusta y `0` centra.
+11. Abre **Exportar** para descargar la función seleccionada como SVG, PNG o PDF. Cada formato añade al final una guía educativa con los símbolos realmente presentes en el diagrama, sus descripciones y una nota para consultar el código original. El menú permite incluir un fondo blanco y, opcionalmente, una cuadrícula. PNG se genera a 3× cuando el tamaño lo permite; el PDF es vectorial y crea páginas solapadas para diagramas grandes, colocando la guía en una página posterior cuando el diagrama necesita varias páginas. La exportación usa una copia aislada del SVG visible, conserva las etiquetas y anotaciones mostradas y no cambia el editor, la selección ni el diagrama lógico.
+12. Genera el diagrama y usa el panel **Simulador paso a paso** para iniciar la función seleccionada, avanzar o retroceder, ejecutar automáticamente, pausar o reiniciar. Puedes ajustar la velocidad automática y el límite de pasos (1–10.000).
+13. Si aparece una solicitud de lectura de `digitalRead()` o `analogRead()`, introduce el valor simulado para continuar. Las variables desconocidas permiten definir un valor inicial; las condiciones desconocidas detienen la simulación sin elegir una rama arbitraria.
+14. El bloque activo y la línea de código se resaltan sin mover el cursor. Los eventos Arduino se muestran en **Eventos simulados**; por ejemplo, `digitalWrite()` registra la petición de salida, `delay()` registra la espera y `Serial.println()` escribe en la consola simulada.
 
 Los bloques muestran sus líneas de origen. Las decisiones distinguen las ramas **Sí/No**; los bucles tienen rutas de retorno; `setup()` se describe como inicialización de una sola ejecución y `loop()` muestra su repetición controlada por Arduino. Las llamadas desconocidas se conservan como bloques de llamada, no se ejecutan ni se tratan como errores por ser desconocidas. Si un bloque seleccionado queda fuera de la vista, el diagrama se centra en él manteniendo el nivel de zoom.
 
@@ -52,6 +53,7 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 - `src/analyzer/analyzer.js`: coordinación del análisis y diagnósticos.
 - `src/flowchart/flow-generator.js`: transforma nodos AST en bloques, conexiones y una estructura intermedia de flujo. Las funciones se mantienen separadas.
 - `src/flowchart/flow-layout.js`: calcula dimensiones y posiciones para secuencias, ramas, bucles y casos; reserva carriles para las conexiones de retorno y despacho.
+- `src/flowchart/visual-labels.js`: persiste las etiquetas separadas del código y crea una copia de presentación del diagrama para renderizado.
 - `src/flowchart/svg-renderer.js`: crea las figuras, textos y rutas SVG con `createElementNS` y `textContent`. El código fuente no se interpreta como HTML o SVG.
 - `src/export/export-manager.js`: construye un SVG independiente y autocontenido, rasteriza PNG con el navegador y exporta PDF vectorial dividido en páginas para contenido grande.
 - `src/export/symbol-legend.js`: descubre las formas y conexiones existentes en el SVG de la función seleccionada y compone la leyenda educativa reutilizada por las exportaciones.
@@ -65,7 +67,7 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 - `src/main.js`: conecta el editor, análisis, generación, selector de función, estado de comentarios, selección sincronizada y controles de la vista.
 - `src/styles/diagram.css`: estilos vectoriales adaptables a los temas claro y oscuro.
 - `src/styles/simulator.css`: controles, panel de estado y resaltado de ejecución para ambos temas.
-- `tests/diagram-selection.test.js` y `tests/code-editor.test.js`: correspondencia AST/bloque, selección centralizada, comentarios y resaltado de CodeMirror.
+- `tests/diagram-selection.test.js`, `tests/visual-labels.test.js` y `tests/code-editor.test.js`: correspondencia AST/bloque, selección centralizada, etiquetas, comentarios y resaltado de CodeMirror.
 - `tests/flowchart.test.js`: pruebas estructurales del grafo, las conexiones y el layout.
 - `tests/svg-renderer.test.js`: pruebas DOM del SVG, comentarios, referencias a líneas y seguridad mediante jsdom.
 - `tests/export-manager.test.js`: contenido y dimensiones de SVG/PNG/PDF, símbolos reales de la guía, nombres seguros, PDF multipágina, errores, ausencia de solapamientos y limpieza de recursos.
