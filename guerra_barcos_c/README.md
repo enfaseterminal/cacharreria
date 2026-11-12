@@ -44,3 +44,7 @@ están las de colocación de barcos, dibujo del tablero, entrada de coordenadas,
 mensajes y estrategia del ordenador. Por eso, los fuentes disponibles no
 bastan para recompilar el juego: harían falta los módulos restantes y un
 compilador compatible con las funciones de DOS usadas por el programa.
+
+## Licencia
+
+Este proyecto está bajo la licencia GNU GPLv3. Consulta el archivo [LICENSE](LICENSE).

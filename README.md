@@ -66,7 +66,7 @@ Genera códigos QR para compartir redes WiFi con seguridad WPA, WEP o sin contra
 
 - **Versión independiente:** [Abrir el generador QR WiFi](./qr-wifi/standalone.html)
 - **Versión con archivos separados:** [`index.html`](./qr-wifi/)
-- **Widgets para insertar:** [`widget.html`](./qr-wifi/widget.html) y [`widget-embebible.html`](./qr-wifi/widget-embebible.html)
+- **Widget para insertar:** [`widget-embebible.html`](./qr-wifi/widget-embebible.html)
 - **Ejemplos, estilos, lógica y guía:** `qr-wifi/ejemplo-insercion.html`, `qr-wifi/styles.css`, `qr-wifi/script.js` y `qr-wifi/README.md`.
 
 ### Validador del algoritmo de Luhn
@@ -84,4 +84,4 @@ Para que GitHub use ese artefacto, la fuente de publicación de Pages debe estar
 
 ## Licencia
 
-Consulta [`LICENSE`](./LICENSE).
+Todas las herramientas de este repositorio, incluida QR WiFi, se distribuyen bajo la licencia GNU GPLv3. Consulta [`LICENSE`](./LICENSE); cada herramienta incluye una copia de la licencia en su carpeta.

@@ -97,7 +97,7 @@ Simplemente abre `standalone.html` en tu navegador. Todo está incluido en un so
 El widget genera códigos QR siguiendo el estándar WiFi QR Code:
 
 ```
-WIFI:T:WPA;S:NombreRed;P:Contraseña;H:false;
+WIFI:T:WPA;S:NombreRed;P:Contraseña;H:false;;
 ```
 
 Donde:
@@ -136,10 +136,12 @@ Puedes personalizar los estilos del widget modificando las clases CSS:
 - No se envía información a ningún servidor
 - Los datos no se almacenan
 - Puedes usar el widget sin conexión a internet (después de cargar la librería QRCode)
+- El navegador descarga la librería QRCode.js desde cdnjs, pero los datos escritos nunca salen del navegador
+- Para un uso totalmente sin conexión, puedes descargar la librería y servirla en local
 
 ## 📄 Licencia
 
-Este proyecto es de código abierto y está disponible para uso libre.
+Este proyecto está bajo la licencia GNU GPLv3. Consulta el archivo [LICENSE](LICENSE).
 
 ## 🤝 Contribuciones
 

@@ -204,7 +204,7 @@ Para producción, puedes:
 
 ## 📄 Licencia
 
-Este proyecto es de código abierto y está disponible para uso libre.
+Este proyecto está bajo la licencia GNU GPLv3. Consulta el archivo [LICENSE](LICENSE).
 
 ## 🤝 Contribuciones
 

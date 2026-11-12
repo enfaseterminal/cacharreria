@@ -297,12 +297,13 @@
             <h1>🔐 Generador QR WiFi</h1>
             <p class="subtitle">Crea un código QR para compartir tu WiFi fácilmente</p>
             
-            <form class="wifi-form" id="wifiForm">
+            <form class="wifi-form" id="wifiForm" autocomplete="off">
                 <div class="form-group">
                     <label for="ssid">Nombre de la red (SSID):</label>
                     <input 
                         type="text" 
                         id="ssid" 
+                        autocomplete="off"
                         placeholder="Mi Red WiFi" 
                         required
                     >
@@ -313,6 +314,7 @@
                     <input 
                         type="password" 
                         id="password" 
+                        autocomplete="new-password"
                         placeholder="Contraseña (opcional)"
                     >
                     <button type="button" class="toggle-password" id="togglePassword">Mostrar</button>
@@ -407,7 +409,7 @@
                 wifiString += `P:${escapeWiFiString(password)};`;
             }
             
-            wifiString += ';H:false';
+            wifiString += 'H:false;;';
 
             // Limpiar el contenedor anterior si existe
             qrCanvas.innerHTML = '';
@@ -456,7 +458,7 @@
             if (password) {
                 wifiString += `P:${escapeWiFiString(password)};`;
             }
-            wifiString += ';H:false';
+            wifiString += 'H:false;;';
 
             navigator.clipboard.writeText(wifiString).then(() => {
                 // Feedback visual

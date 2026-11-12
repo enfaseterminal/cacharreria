@@ -182,15 +182,15 @@
             <h2>🔐 WiFi QR</h2>
             <p class="subtitle">Genera un código QR para compartir tu WiFi</p>
             
-            <form class="qr-wifi-widget-form" id="wifiWidgetForm">
+            <form class="qr-wifi-widget-form" id="wifiWidgetForm" autocomplete="off">
                 <div class="qr-wifi-widget-form-group">
                     <label for="wifiWidgetSSID">Red WiFi (SSID):</label>
-                    <input type="text" id="wifiWidgetSSID" placeholder="Mi Red" required>
+                    <input type="text" id="wifiWidgetSSID" autocomplete="off" placeholder="Mi Red" required>
                 </div>
 
                 <div class="qr-wifi-widget-form-group">
                     <label for="wifiWidgetPassword">Contraseña:</label>
-                    <input type="password" id="wifiWidgetPassword" placeholder="Contraseña">
+                    <input type="password" id="wifiWidgetPassword" autocomplete="new-password" placeholder="Contraseña">
                     <button type="button" class="qr-wifi-widget-toggle-password" id="toggleWidgetPwd">Mostrar</button>
                 </div>
 
@@ -259,7 +259,7 @@
                 if (password) {
                     wifiString += `P:${escapeWiFi(password)};`;
                 }
-                wifiString += ';H:false';
+                wifiString += 'H:false;;';
 
                 wifiQRContainer.innerHTML = '';
                 new QRCode(wifiQRContainer, {

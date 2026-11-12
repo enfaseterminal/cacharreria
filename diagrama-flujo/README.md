@@ -105,3 +105,7 @@ El límite de pasos evita bucles interminables y la ejecución automática usa u
 - Diseño adaptable con pestañas móviles para cambiar entre editor y diagrama.
 - Analizador con tokens, AST, comentarios y posiciones; panel plegable con funciones, variables, estructuras, AST y diagnósticos.
 - Simulador didáctico basado en AST, sin ejecución de código real ni control de una placa Arduino.
+
+## Licencia
+
+Este proyecto está bajo la licencia GNU GPLv3. Consulta el archivo [LICENSE](LICENSE).

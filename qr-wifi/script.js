@@ -45,7 +45,7 @@ function generateQRCode() {
         wifiString += `P:${escapeWiFiString(password)};`;
     }
     
-    wifiString += ';H:false';
+    wifiString += 'H:false;;';
 
     // Limpiar el contenedor anterior si existe
     const qrContainer = canvas.parentNode;
@@ -96,7 +96,7 @@ btnCopy.addEventListener('click', function() {
     if (password) {
         wifiString += `P:${escapeWiFiString(password)};`;
     }
-    wifiString += ';H:false';
+    wifiString += 'H:false;;';
 
     navigator.clipboard.writeText(wifiString).then(() => {
         // Feedback visual
@@ -154,7 +154,7 @@ window.QRWifiGenerator = {
         if (password) {
             wifiString += `P:${escapeWiFiString(password)};`;
         }
-        wifiString += ';H:false';
+        wifiString += 'H:false;;';
         
         return wifiString;
     }
