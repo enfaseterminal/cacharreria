@@ -2,10 +2,13 @@
 
 Colección de aplicaciones pequeñas, widgets, ejemplos y proyectos de código de EnFaseTerminal.
 
-**Página principal:** [enfaseterminal.github.io/cacharreria/](https://enfaseterminal.github.io/cacharreria/)
+**Página principal:** [cacharreria.enfaseterminal.com](http://cacharreria.enfaseterminal.com/)
+
+**URL anterior de GitHub Pages:** [enfaseterminal.github.io/cacharreria/](https://enfaseterminal.github.io/cacharreria/)
+
 **Repositorio:** [github.com/enfaseterminal/cacharreria](https://github.com/enfaseterminal/cacharreria)
 
-La página principal enlaza a las aplicaciones publicadas. Las rutas de sus enlaces son relativas al repositorio, por lo que funcionan bajo `/cacharreria/` y no dependen de que un proyecto esté alojado en la raíz del dominio.
+La página principal enlaza a las aplicaciones publicadas. Sus rutas son relativas, así que funcionan tanto en el subdominio como en la URL anterior de GitHub Pages.
 
 ## Proyectos y recursos
 
@@ -75,9 +78,9 @@ Recurso interactivo que explica y valida números de ejemplo con el algoritmo de
 
 ## Publicación
 
-GitHub Pages sirve este repositorio en `https://enfaseterminal.github.io/cacharreria/`. El workflow [Deploy GitHub Pages](https://github.com/enfaseterminal/cacharreria/blob/main/.github/workflows/deploy-pages.yml) conserva las carpetas del sitio y publica la compilación de Vite en `diagrama-flujo/`.
+GitHub Pages publica este repositorio en `http://cacharreria.enfaseterminal.com/`; la URL anterior de `enfaseterminal.github.io` redirige al subdominio. El workflow [Deploy GitHub Pages](https://github.com/enfaseterminal/cacharreria/blob/main/.github/workflows/deploy-pages.yml) conserva las carpetas del sitio y publica la compilación de Vite en `diagrama-flujo/`.
 
-Para que GitHub use ese artefacto, la fuente de publicación de Pages debe estar configurada como **GitHub Actions** en **Settings → Pages → Build and deployment → Source**.
+Para que GitHub use ese artefacto, la fuente de publicación de Pages debe estar configurada como **GitHub Actions** en **Settings → Pages → Build and deployment → Source**. En la comprobación actual, HTTP funciona, pero HTTPS presenta un error de certificado para el subdominio; activa HTTPS en GitHub Pages una vez que el certificado del dominio esté listo.
 
 ## Licencia
 
