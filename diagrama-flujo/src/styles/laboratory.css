@@ -155,7 +155,11 @@
 }
 
 .circuit-component {
-  cursor: pointer;
+  cursor: grab;
+}
+
+.circuit-canvas.is-dragging .circuit-component {
+  cursor: grabbing;
 }
 
 .circuit-component:focus-visible {
@@ -202,6 +206,13 @@
   fill: #e6c997;
   stroke: #8e7650;
   stroke-width: 1.5;
+}
+
+.circuit-unknown-body {
+  fill: var(--surface-raised);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
 }
 
 .circuit-resistor-band {

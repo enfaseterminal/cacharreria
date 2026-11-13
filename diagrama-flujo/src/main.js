@@ -157,6 +157,7 @@ const circuitLab = createCircuitLab(
   circuitModel,
   {
     onChange(change) {
+      if (change.changeType === "visual") return;
       if (change.changeType === "input") {
         if (simulationController) simulationController.setCircuitInput(
           change.component.id,

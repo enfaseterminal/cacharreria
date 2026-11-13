@@ -1,3 +1,8 @@
+import {
+  getArduinoTerminals,
+  getComponentTerminals,
+  isComponentType,
+} from "./circuit-catalog.js";
 import { resistorBands, resistorValues } from "./circuit-model.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -13,6 +18,7 @@ const COLOR_VALUES = {
   amarillo: "#e9c63f",
   azul: "#387fc1",
 };
+const ARDUINO_TERMINALS = getArduinoTerminals();
 
 function svgElement(name, attributes = {}, text = "") {
   const element = document.createElementNS(SVG_NS, name);
@@ -35,37 +41,74 @@ function endpointTitle(endpoint) {
 }
 
 function componentDescription(component) {
+  const properties = component.properties ?? {};
   switch (component.type) {
-    case "led": return `LED ${component.properties.color}`;
-    case "resistor": return `Resistencia ${component.properties.ohms} Ω`;
-    case "button": return `Pulsador ${component.properties.pressed ? "presionado" : "liberado"}`;
-    case "potentiometer": return `Potenciómetro ${component.properties.value}/1023`;
-    default: return "Componente";
+    case "led": return `LED ${properties.color}`;
+    case "resistor": return `Resistencia ${properties.ohms} Ω`;
+    case "button": return `Pulsador ${properties.pressed ? "presionado" : "liberado"}`;
+    case "potentiometer": return `Potenciómetro ${properties.value}/1023`;
+    default: return `Componente no compatible (${component.type})`;
   }
 }
 
-function terminalPosition(component, terminal) {
-  const { x, y } = component.position;
-  const offsets = {
-    led: { anode: [-19, 0], cathode: [19, 0] },
-    resistor: { lead1: [-34, 0], lead2: [34, 0] },
-    button: { contact1: [-32, 0], contact2: [32, 0] },
-    potentiometer: { end1: [-38, 0], wiper: [0, -42], end2: [38, 0] },
-  };
-  const [offsetX, offsetY] = offsets[component.type][terminal];
+const COMPONENT_TERMINAL_OFFSETS = {
+  led: { left: [-19, 0], right: [19, 0] },
+  resistor: { left: [-34, 0], right: [34, 0] },
+  button: { left: [-32, 0], right: [32, 0] },
+  potentiometer: { left: [-38, 0], top: [0, -42], right: [38, 0] },
+};
+
+function terminalPosition(component, terminalId, position) {
+  const terminal = getComponentTerminals(component.type).find(({ id }) => id === terminalId);
+  if (!terminal || !position) return null;
+  const offset = COMPONENT_TERMINAL_OFFSETS[component.type]?.[terminal.anchor];
+  if (!offset) return null;
+  const { x, y } = position;
+  const [offsetX, offsetY] = offset;
   return { x: x + offsetX, y: y + offsetY };
 }
 
-function endpointPosition(endpoint, components) {
+function arduinoTerminalPosition(terminal) {
+  if (terminal.kind === "digital") return { x: 254, y: 82 + (terminal.number - 2) * 18 };
+  if (terminal.kind === "analog") return { x: 254, y: 315 + terminal.number * 18 };
+  return { x: 254, y: terminal.id === "5V" ? 435 : 453 };
+}
+
+function endpointPosition(endpoint, components, positions) {
   if (endpoint.startsWith("arduino:")) {
-    const pin = endpoint.slice("arduino:".length);
-    if (/^D\d+$/.test(pin)) return { x: 254, y: 82 + (Number(pin.slice(1)) - 2) * 18 };
-    if (/^A\d$/.test(pin)) return { x: 254, y: 315 + Number(pin.slice(1)) * 18 };
-    return { x: 254, y: pin === "5V" ? 435 : 453 };
+    const terminal = ARDUINO_TERMINALS.find(({ id }) => id === endpoint.slice("arduino:".length));
+    return terminal ? arduinoTerminalPosition(terminal) : null;
   }
   const separator = endpoint.lastIndexOf(":");
   const component = components.find((item) => item.id === endpoint.slice(0, separator));
-  return component ? terminalPosition(component, endpoint.slice(separator + 1)) : null;
+  return component
+    ? terminalPosition(component, endpoint.slice(separator + 1), positions[component.id])
+    : null;
+}
+
+function pointerPosition(canvas, event) {
+  const matrix = canvas.getScreenCTM?.();
+  if (matrix && typeof DOMPoint === "function") {
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    return { x: point.x, y: point.y };
+  }
+
+  const viewBox = canvas.viewBox?.baseVal;
+  const bounds = canvas.getBoundingClientRect();
+  if (!viewBox?.width || !viewBox.height || !bounds.width || !bounds.height) {
+    return { x: event.clientX, y: event.clientY };
+  }
+  const scale = Math.min(bounds.width / viewBox.width, bounds.height / viewBox.height);
+  const offsetX = (bounds.width - viewBox.width * scale) / 2;
+  const offsetY = (bounds.height - viewBox.height * scale) / 2;
+  return {
+    x: viewBox.x + (event.clientX - bounds.left - offsetX) / scale,
+    y: viewBox.y + (event.clientY - bounds.top - offsetY) / scale,
+  };
+}
+
+function wirePath(from, to) {
+  return `M ${from.x} ${from.y} C ${(from.x + to.x) / 2} ${from.y}, ${(from.x + to.x) / 2} ${to.y}, ${to.x} ${to.y}`;
 }
 
 function makeSelect(labelText, name, options, selectedValue = "") {
@@ -86,6 +129,8 @@ function makeSelect(labelText, name, options, selectedValue = "") {
 export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo = () => {} } = {}) {
   let selectedComponentId = null;
   let currentSimulationInputs = null;
+  let activeDrag = null;
+  let suppressedClick = null;
   const canvas = root.querySelector("#circuit-canvas");
   const componentList = root.querySelector("#circuit-component-list");
   const wireList = root.querySelector("#circuit-wire-list");
@@ -110,6 +155,7 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
 
   function renderCanvas() {
     const components = model.getComponents();
+    const positions = model.getVisualState().positions;
     const wires = model.getWires();
     canvas.replaceChildren();
     canvas.append(svgElement("title", { id: "circuit-canvas-title" }, "Arduino Uno y protoboard"));
@@ -126,43 +172,49 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       }
     }
 
-    for (let pin = 2; pin <= 13; pin += 1) {
-      const y = 82 + (pin - 2) * 18;
-      canvas.append(svgElement("line", { x1: 228, y1: y, x2: 254, y2: y, class: "circuit-pin-line" }));
-      canvas.append(svgElement("circle", { cx: 254, cy: y, r: 5, class: "circuit-terminal", "data-terminal": `arduino:D${pin}`, tabindex: 0, role: "button", "aria-label": `Terminal Arduino D${pin}` }));
-      canvas.append(svgElement("text", { x: 216, y: y + 3, "text-anchor": "end", class: "circuit-pin-label" }, `D${pin}`));
-    }
-    for (let pin = 0; pin <= 5; pin += 1) {
-      const y = 315 + pin * 18;
-      canvas.append(svgElement("line", { x1: 228, y1: y, x2: 254, y2: y, class: "circuit-pin-line" }));
-      canvas.append(svgElement("circle", { cx: 254, cy: y, r: 5, class: "circuit-terminal", "data-terminal": `arduino:A${pin}`, tabindex: 0, role: "button", "aria-label": `Terminal Arduino A${pin}` }));
-      canvas.append(svgElement("text", { x: 216, y: y + 3, "text-anchor": "end", class: "circuit-pin-label" }, `A${pin}`));
-    }
-    for (const [rail, y] of [["5V", 435], ["GND", 453]]) {
-      canvas.append(svgElement("line", { x1: 228, y1: y, x2: 254, y2: y, class: "circuit-pin-line" }));
-      canvas.append(svgElement("circle", { cx: 254, cy: y, r: 5, class: "circuit-terminal", "data-terminal": `arduino:${rail}`, tabindex: 0, role: "button", "aria-label": `Terminal Arduino ${rail}` }));
-      canvas.append(svgElement("text", { x: 216, y: y + 3, "text-anchor": "end", class: "circuit-pin-label" }, rail));
+    for (const terminal of ARDUINO_TERMINALS) {
+      const { x, y } = arduinoTerminalPosition(terminal);
+      canvas.append(svgElement("line", { x1: 228, y1: y, x2: x, y2: y, class: "circuit-pin-line" }));
+      canvas.append(svgElement("circle", {
+        cx: x,
+        cy: y,
+        r: 5,
+        class: "circuit-terminal",
+        "data-terminal": `arduino:${terminal.id}`,
+        tabindex: 0,
+        role: "button",
+        "aria-label": `Terminal Arduino ${terminal.id}`,
+      }));
+      canvas.append(svgElement("text", {
+        x: 216,
+        y: y + 3,
+        "text-anchor": "end",
+        class: "circuit-pin-label",
+      }, terminal.id));
     }
 
     for (const wire of wires) {
-      const from = endpointPosition(wire.from, components);
-      const to = endpointPosition(wire.to, components);
+      const from = endpointPosition(wire.from, components, positions);
+      const to = endpointPosition(wire.to, components, positions);
       if (from && to) canvas.append(svgElement("path", {
-        d: `M ${from.x} ${from.y} C ${(from.x + to.x) / 2} ${from.y}, ${(from.x + to.x) / 2} ${to.y}, ${to.x} ${to.y}`,
+        d: wirePath(from, to),
         class: "circuit-wire",
+        "data-wire-id": wire.id,
       }));
     }
 
     const ledStates = model.getLedStates();
     for (const component of components) {
+      const position = positions[component.id];
+      if (!position) continue;
+      const { x, y } = position;
       const group = svgElement("g", {
-        class: `circuit-component circuit-component-${component.type}${component.id === selectedComponentId ? " is-selected" : ""}`,
+        class: `circuit-component circuit-component-${isComponentType(component.type) ? component.type : "unknown"}${component.id === selectedComponentId ? " is-selected" : ""}`,
         "data-component-id": component.id,
         tabindex: 0,
         role: "button",
         "aria-label": `${componentDescription(component)}. Seleccionar componente.`,
       });
-      const { x, y } = component.position;
       if (component.type === "led") {
         const ledState = ledStates[component.id] ?? { state: "unknown" };
         group.setAttribute("data-state", ledState.state);
@@ -193,31 +245,35 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
         group.append(svgElement("rect", { x: x - 16, y: y - 11, width: 32, height: 22, rx: 4, class: "circuit-button-body" }));
         group.append(svgElement("circle", { cx: x, cy: y, r: 5, class: "circuit-button-cap" }));
         group.append(svgElement("line", { x1: x + 16, y1: y, x2: x + 32, y2: y, class: "circuit-lead" }));
-      } else {
+      } else if (component.type === "potentiometer") {
         group.append(svgElement("line", { x1: x - 38, y1: y, x2: x + 38, y2: y, class: "circuit-lead" }));
         const knobX = x - 26 + (Number(component.properties.value) / 1023) * 52;
         group.append(svgElement("line", { x1: x - 26, y1: y - 25, x2: x + 26, y2: y - 25, class: "circuit-pot-track" }));
         group.append(svgElement("line", { x1: knobX, y1: y - 30, x2: x, y2: y - 42, class: "circuit-pot-wiper-line" }));
         group.append(svgElement("circle", { cx: knobX, cy: y - 25, r: 6, class: "circuit-pot-knob", "data-pot-knob": "" }));
+      } else {
+        group.append(svgElement("rect", {
+          x: x - 30,
+          y: y - 15,
+          width: 60,
+          height: 30,
+          rx: 5,
+          class: "circuit-unknown-body",
+        }));
       }
       group.append(svgElement("text", { x, y: y + 28, "text-anchor": "middle", class: "circuit-component-label" }, componentDescription(component)));
-      for (const terminal of component.type === "led"
-        ? ["anode", "cathode"]
-        : component.type === "resistor"
-          ? ["lead1", "lead2"]
-          : component.type === "button"
-            ? ["contact1", "contact2"]
-            : ["end1", "wiper", "end2"]) {
-        const point = terminalPosition(component, terminal);
+      for (const terminal of getComponentTerminals(component.type)) {
+        const point = terminalPosition(component, terminal.id, position);
+        if (!point) continue;
         group.append(svgElement("circle", {
           cx: point.x,
           cy: point.y,
           r: 5,
           class: "circuit-terminal",
-          "data-terminal": `${component.id}:${terminal}`,
+          "data-terminal": `${component.id}:${terminal.id}`,
           tabindex: 0,
           role: "button",
-          "aria-label": `Terminal ${terminal} de ${componentDescription(component)}`,
+          "aria-label": `Terminal ${terminal.id} de ${componentDescription(component)}`,
         }));
       }
       canvas.append(group);
@@ -258,7 +314,7 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       const button = htmlElement(
         "button",
         `circuit-component-item${component.id === selectedComponentId ? " is-selected" : ""}`,
-        `${COMPONENT_LABELS[component.type]} · ${componentDescription(component)}`,
+        `${COMPONENT_LABELS[component.type] ?? "Componente"} · ${componentDescription(component)}`,
       );
       button.type = "button";
       button.dataset.selectComponent = component.id;
@@ -272,7 +328,7 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       properties.append(htmlElement("p", "circuit-empty", "Selecciona un componente en el montaje para ver sus propiedades."));
       return;
     }
-    properties.append(htmlElement("h3", "", `${COMPONENT_LABELS[component.type]} · ${component.id}`));
+    properties.append(htmlElement("h3", "", `${COMPONENT_LABELS[component.type] ?? "Componente"} · ${component.id}`));
     properties.append(htmlElement("p", "circuit-help", "La visualización representa conexiones educativas; no calcula magnitudes eléctricas."));
 
     if (component.type === "led") {
@@ -296,7 +352,7 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       pressed.dataset.property = "pressed";
       pressed.setAttribute("aria-pressed", String(component.properties.pressed));
       properties.append(pressed, htmlElement("p", "circuit-help", "La entrada solo se determina con una conexión válida al pin y una referencia GND o 5V."));
-    } else {
+    } else if (component.type === "potentiometer") {
       const label = htmlElement("label", "circuit-field", "Valor analógico (0–1023)");
       const range = document.createElement("input");
       range.type = "range";
@@ -309,6 +365,8 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       label.append(range);
       const output = htmlElement("output", "circuit-pot-value", `${component.properties.value}/1023`);
       properties.append(label, output, htmlElement("p", "circuit-help", "El valor alimenta analogRead() cuando el wiper y los extremos están conectados correctamente."));
+    } else {
+      properties.append(htmlElement("p", "circuit-help", "Este componente se conserva, pero esta versión no puede editarlo ni simularlo."));
     }
 
     const remove = htmlElement("button", "tool-button tool-button-danger", "Eliminar componente");
@@ -349,6 +407,104 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
       : "Añade componentes o carga el circuito de ejemplo.";
   }
 
+  function updateDragPreview() {
+    const { componentId, element, startPosition, position } = activeDrag;
+    element.setAttribute(
+      "transform",
+      `translate(${position.x - startPosition.x} ${position.y - startPosition.y})`,
+    );
+    const components = model.getComponents();
+    const positions = model.getVisualState().positions;
+    positions[componentId] = position;
+    for (const wire of model.getWires()) {
+      const path = [...canvas.querySelectorAll(".circuit-wire")]
+        .find((item) => item.dataset.wireId === wire.id);
+      if (!path) continue;
+      const from = endpointPosition(wire.from, components, positions);
+      const to = endpointPosition(wire.to, components, positions);
+      if (from && to) path.setAttribute("d", wirePath(from, to));
+    }
+  }
+
+  function stopDrag(commit) {
+    if (!activeDrag) return;
+    const drag = activeDrag;
+    activeDrag = null;
+    canvas.classList.remove("is-dragging");
+    if (!commit) {
+      renderCanvas();
+      return;
+    }
+    if (!drag.moved) return;
+
+    selectedComponentId = drag.componentId;
+    suppressedClick = { componentId: drag.componentId, expiresAt: performance.now() + 500 };
+    if (
+      drag.position.x !== drag.startPosition.x ||
+      drag.position.y !== drag.startPosition.y
+    ) {
+      announceChange(model.setComponentPosition(drag.componentId, drag.position));
+    } else {
+      render();
+    }
+  }
+
+  canvas.addEventListener("pointerdown", (event) => {
+    suppressedClick = null;
+    if (event.button !== 0 || event.isPrimary === false || !(event.target instanceof Element)) return;
+    if (event.target.closest("[data-terminal]")) return;
+    const element = event.target.closest(".circuit-component[data-component-id]");
+    if (!element) return;
+    const componentId = element.dataset.componentId;
+    const position = model.getComponentPosition(componentId);
+    if (!position) return;
+
+    activeDrag = {
+      pointerId: event.pointerId,
+      componentId,
+      element,
+      startPointer: pointerPosition(canvas, event),
+      startPosition: position,
+      position,
+      moved: false,
+    };
+    if (
+      Number.isFinite(event.pointerId) &&
+      typeof element.setPointerCapture === "function"
+    ) {
+      element.setPointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+  });
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+    const point = pointerPosition(canvas, event);
+    const deltaX = point.x - activeDrag.startPointer.x;
+    const deltaY = point.y - activeDrag.startPointer.y;
+    if (!activeDrag.moved && Math.hypot(deltaX, deltaY) < 3) return;
+    activeDrag.moved = true;
+    activeDrag.position = {
+      x: Math.max(300, Math.min(760, activeDrag.startPosition.x + deltaX)),
+      y: Math.max(85, Math.min(430, activeDrag.startPosition.y + deltaY)),
+    };
+    canvas.classList.add("is-dragging");
+    updateDragPreview();
+    event.preventDefault();
+  });
+
+  canvas.addEventListener("pointerup", (event) => {
+    if (activeDrag && event.pointerId === activeDrag.pointerId) stopDrag(true);
+  });
+
+  canvas.addEventListener("pointercancel", (event) => {
+    if (activeDrag && event.pointerId === activeDrag.pointerId) stopDrag(false);
+  });
+
+  canvas.addEventListener("lostpointercapture", (event) => {
+    if (activeDrag && event.pointerId === activeDrag.pointerId) stopDrag(false);
+  });
+
   function addWire(from, to) {
     try {
       announceChange(model.addWire(from, to));
@@ -358,6 +514,19 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
   }
 
   root.addEventListener("click", (event) => {
+    const clickedComponent = event.target.closest(".circuit-component[data-component-id]");
+    if (
+      clickedComponent &&
+      suppressedClick?.componentId === clickedComponent.dataset.componentId &&
+      event.detail > 0 &&
+      performance.now() <= suppressedClick.expiresAt
+    ) {
+      suppressedClick = null;
+      event.preventDefault();
+      return;
+    }
+    if (suppressedClick && performance.now() > suppressedClick.expiresAt) suppressedClick = null;
+
     const add = event.target.closest("[data-add-component]");
     if (add) {
       try {
@@ -464,6 +633,9 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
   return {
     render,
     getModel: () => model,
+    setComponentPosition(id, position) {
+      announceChange(model.setComponentPosition(id, position));
+    },
     getSvgForExport() {
       const exported = canvas.cloneNode(true);
       const sourceElements = [canvas, ...canvas.querySelectorAll("*")];
@@ -547,7 +719,8 @@ export function createCircuitLab(root, model, { onChange = () => {}, onLoadDemo 
           const knob = group?.querySelector("[data-pot-knob]");
           if (range) range.value = String(input);
           if (output) output.value = `${input}/1023`;
-          if (knob) knob.setAttribute("cx", String(component.position.x - 26 + (input / 1023) * 52));
+          const position = model.getComponentPosition(component.id);
+          if (knob && position) knob.setAttribute("cx", String(position.x - 26 + (input / 1023) * 52));
         }
       }
     },

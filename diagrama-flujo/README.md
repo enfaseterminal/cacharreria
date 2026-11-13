@@ -54,6 +54,8 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 
 - Usa **Añadir LED**, **Añadir resistencia**, **Añadir pulsador** o **Añadir potenciómetro**; selecciona un elemento para editar sus propiedades.
 - Conecta terminales con los selectores **Desde/Hasta** o seleccionando dos terminales del dibujo. Las conexiones y componentes se guardan automáticamente; **Vaciar montaje** limpia solo el circuito.
+- Arrastra los componentes con el ratón para cambiar su posición en la protoboard. Los terminales y cables se mueven con el componente, pero sus identificadores y conexiones lógicas no cambian. Las posiciones se guardan por separado y mover un componente no reinicia la simulación.
+- Los componentes o conexiones desconocidos que ya estén guardados se conservan al migrar; se muestran como no compatibles y no se simulan hasta que exista una definición en el catálogo.
 - Las resistencias ofrecen valores habituales, tolerancias y bandas de 3, 4 o 5 colores. La tolerancia y el valor son descriptivos: no se calcula corriente.
 - El estado de la pulsación y el valor del mando del potenciómetro persisten como entradas virtuales. Durante la simulación, los cambios de entrada forman parte de los snapshots para que el retroceso los restaure.
 - Si el navegador no puede leer el almacenamiento o encuentra un formato de circuito incompatible, muestra un aviso y permite iniciar un montaje vacío. El código y las etiquetas visuales usan claves de almacenamiento independientes.
@@ -73,8 +75,9 @@ El simulador es didáctico: **no compila ni ejecuta C++ y no se conecta a una pl
 - `src/simulator/simulation-engine.js`: recorre el AST, resuelve ramas y bucles, llama funciones auxiliares y genera eventos Arduino simulados.
 - `src/simulator/simulation-controller.js`: administra avance, retroceso, temporizador automático, pausa, reinicio e invalidación.
 - `src/ui/simulator-panel.js`: controles accesibles, variables, entradas de sensor, consola serie, registro de eventos y monitor de pines.
-- `src/lab/circuit-model.js`: catálogo, conexiones, persistencia versionada, resolución de entradas virtuales y estado derivado de LEDs.
-- `src/lab/circuit-lab.js`: protoboard SVG accesible, Arduino Uno, controles de componentes, propiedades y conexiones.
+- `src/lab/circuit-catalog.js`: definiciones compartidas de componentes, propiedades admitidas, terminales y pines Arduino. Los anclajes de terminal son relativos; las coordenadas SVG pertenecen al renderizador.
+- `src/lab/circuit-model.js`: conectividad lógica, propiedades, persistencia versionada, posiciones visuales separadas, resolución de entradas virtuales y estado derivado de LEDs. El formato persistido v2 guarda las posiciones en `visual.positions`; al cargar v1, extrae `component.position` y conserva IDs, propiedades y conexiones. Los getters de componentes mantienen una proyección `position` por compatibilidad.
+- `src/lab/circuit-lab.js`: protoboard SVG accesible, Arduino Uno, controles de componentes, propiedades y conexiones. Calcula las coordenadas de terminales y cables desde el catálogo y el estado visual.
 - `src/styles/laboratory.css`: presentación adaptable del laboratorio y sus componentes.
 - `src/ui/diagram-selection.js`: resuelve posiciones del código contra bloques AST, mantiene el estado central de selección y presenta los detalles y comentarios asociados.
 - `src/editor/code-editor.js`: expone navegación a líneas y un resaltado decorativo que no modifica el documento ni la selección/cursor.

@@ -5,6 +5,7 @@ import {
   createDemoCircuit,
   resistorBands,
 } from "../src/lab/circuit-model.js";
+import { getArduinoTerminals, getComponentTerminals } from "../src/lab/circuit-catalog.js";
 
 function createMemoryStorage(initial = {}) {
   const entries = new Map(Object.entries(initial));
@@ -44,6 +45,22 @@ describe("circuit model", () => {
     expect(resistorBands(10000, 5)).toEqual(["marrón", "negro", "negro", "rojo", "dorado"]);
     expect(resistorBands(1000, 4, 1)).toEqual(["marrón", "negro", "rojo", "marrón"]);
     expect(() => resistorBands(123)).toThrow(RangeError);
+  });
+
+  it("uses one terminal catalog for the model and renderer-facing anchors", () => {
+    expect(getComponentTerminals("led")).toEqual([
+      { id: "anode", anchor: "left" },
+      { id: "cathode", anchor: "right" },
+    ]);
+    expect(getComponentTerminals("potentiometer").map(({ id }) => id))
+      .toEqual(["end1", "wiper", "end2"]);
+    expect(getComponentTerminals("future-component")).toEqual([]);
+    expect(getArduinoTerminals().map(({ id }) => id)).toEqual([
+      ...Array.from({ length: 12 }, (_unused, index) => `D${index + 2}`),
+      ...Array.from({ length: 6 }, (_unused, index) => `A${index}`),
+      "5V",
+      "GND",
+    ]);
   });
 
   it("allows component colors, resistor tolerance, and potentiometer values to be updated", () => {
@@ -118,10 +135,126 @@ describe("circuit model", () => {
     first.addWire("arduino:D2", `${button.id}:contact1`);
     const restored = createCircuitModel(storage);
 
-    expect(JSON.parse(storage.getItem(circuitStorageKey)).version).toBe(1);
+    const saved = JSON.parse(storage.getItem(circuitStorageKey));
+    expect(saved.version).toBe(2);
+    expect(saved.components.every((component) => !Object.hasOwn(component, "position"))).toBe(true);
+    expect(saved.visual.positions[button.id]).toEqual(first.getComponentPosition(button.id));
     expect(restored.getComponents()).toEqual(first.getComponents());
     expect(restored.getWires()).toEqual(first.getWires());
     expect(storage.getItem("arduino-flowchart-code")).toBe("int original = 7;");
+  });
+
+  it("migrates v1 positions into visual state and preserves unknown records through save and reload", () => {
+    const legacy = {
+      version: 1,
+      components: [
+        {
+          id: "legacy-led",
+          type: "led",
+          position: { x: 520, y: 205 },
+          properties: { color: "azul" },
+        },
+        {
+          id: "future-1",
+          type: "future-sensor",
+          position: { x: 640, y: 310 },
+          properties: { calibration: { zero: 7 } },
+          vendorData: { revision: 3 },
+        },
+      ],
+      wires: [
+        { id: "legacy-wire", from: "arduino:D13", to: "legacy-led:anode", gauge: "thin" },
+        { id: "future-wire", from: "future-1:signal", to: "arduino:A0" },
+      ],
+    };
+    const storage = createMemoryStorage({ [circuitStorageKey]: JSON.stringify(legacy) });
+    const model = createCircuitModel(storage);
+    const migrated = model.getState();
+
+    expect(JSON.parse(storage.getItem(circuitStorageKey)).version).toBe(2);
+    expect(migrated.version).toBe(2);
+    expect(migrated.components).toEqual([
+      { id: "legacy-led", type: "led", properties: { color: "azul" } },
+      {
+        id: "future-1",
+        type: "future-sensor",
+        properties: { calibration: { zero: 7 } },
+        vendorData: { revision: 3 },
+      },
+    ]);
+    expect(migrated.visual.positions).toEqual({
+      "legacy-led": { x: 520, y: 205 },
+      "future-1": { x: 640, y: 310 },
+    });
+    expect(migrated.wires).toEqual(legacy.wires);
+    expect(model.getComponents().find((item) => item.id === "legacy-led"))
+      .toMatchObject({ type: "led", properties: { color: "azul" }, position: { x: 520, y: 205 } });
+    expect(model.getWarnings().join(" ")).toContain("future-wire");
+
+    model.setComponentPosition("legacy-led", { x: 540, y: 220 });
+    const saved = JSON.parse(storage.getItem(circuitStorageKey));
+    const restored = createCircuitModel(storage);
+    expect(saved.components.every((component) => !Object.hasOwn(component, "position"))).toBe(true);
+    expect(restored.getState()).toEqual(model.getState());
+    expect(restored.getWires()).toEqual(legacy.wires);
+    expect(restored.getComponents().find((item) => item.id === "future-1").vendorData)
+      .toEqual({ revision: 3 });
+  });
+
+  it("assigns valid initial positions when legacy layout data is missing", () => {
+    const legacy = {
+      version: 1,
+      components: [
+        { id: "component-8", type: "led", properties: { color: "rojo" } },
+        { id: "component-9", type: "button", position: { x: -1, y: 20 }, properties: { pressed: false } },
+      ],
+      wires: [],
+    };
+    const model = createCircuitModel(createMemoryStorage({
+      [circuitStorageKey]: JSON.stringify(legacy),
+    }));
+
+    expect(model.getComponentPosition("component-8")).toEqual({ x: 405, y: 120 });
+    expect(model.getComponentPosition("component-9")).toEqual({ x: 517, y: 120 });
+    expect(model.getComponents().every(({ position }) =>
+      position.x >= 300 && position.x <= 760 && position.y >= 85 && position.y <= 430,
+    )).toBe(true);
+  });
+
+  it("keeps coordinates independent from terminals, wires, and electrical results", () => {
+    const model = createCircuitModel(createMemoryStorage());
+    model.loadDemo();
+    const beforeWires = model.getWires();
+    const beforeLed = model.getLedStates({ 13: { mode: "OUTPUT", value: 1 } });
+    const beforeEndpoints = model.getEndpoints();
+    const result = model.setComponentPosition("component-2", { x: 680, y: 330 });
+
+    expect(result.changeType).toBe("visual");
+    expect(model.getComponentPosition("component-2")).toEqual({ x: 680, y: 330 });
+    expect(model.getWires()).toEqual(beforeWires);
+    expect(model.getEndpoints()).toEqual(beforeEndpoints);
+    expect(model.getLedStates({ 13: { mode: "OUTPUT", value: 1 } })).toEqual(beforeLed);
+    expect(model.readInput("digitalRead", 2, {}, model.getInitialInputs()).known).toBe(false);
+  });
+
+  it("returns independent snapshots and compatibility projections", () => {
+    const model = createCircuitModel(createMemoryStorage());
+    model.loadDemo();
+    const state = model.getState();
+    const visual = model.getVisualState();
+    const components = model.getComponents();
+    const wires = model.getWires();
+
+    state.visual.positions["component-2"].x = 700;
+    visual.positions["component-2"].y = 400;
+    components[0].position.x = 700;
+    components[0].properties.ohms = 10000;
+    wires[0].from = "arduino:A0";
+
+    expect(model.getComponentPosition("component-2")).toEqual({ x: 517, y: 120 });
+    expect(model.getComponents()[0].position.x).toBe(405);
+    expect(model.getComponents()[0].properties.ohms).toBe(220);
+    expect(model.getWires()[0].from).toBe("arduino:D13");
   });
 
   it("warns about incompatible stored data and leaves it untouched until a user saves changes", () => {
@@ -134,7 +267,7 @@ describe("circuit model", () => {
     expect(errors).toHaveLength(1);
     expect(storage.getItem(circuitStorageKey)).toBe(invalid);
     model.addComponent("led");
-    expect(JSON.parse(storage.getItem(circuitStorageKey)).version).toBe(1);
+    expect(JSON.parse(storage.getItem(circuitStorageKey)).version).toBe(2);
   });
 
   it("loads the documented demonstration circuit with its three valid connections", () => {

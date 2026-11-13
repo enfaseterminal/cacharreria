@@ -73,6 +73,46 @@ describe("circuit lab simulation integration", () => {
     expect(engine.state.circuitInputs[button.id]).toBe(false);
   });
 
+  it("keeps a normally configured INPUT button unknown while open and LOW when pressed to GND", () => {
+    const circuit = createCircuitModel(createStorage());
+    const button = circuit.addComponent("button").component;
+    circuit.addWire("arduino:D2", `${button.id}:contact1`);
+    circuit.addWire(`${button.id}:contact2`, "arduino:GND");
+    const pinState = { 2: { mode: "INPUT" } };
+
+    expect(circuit.readInput("digitalRead", 2, pinState, circuit.getInitialInputs()).known).toBe(false);
+    circuit.updateProperty(button.id, "pressed", true);
+    expect(circuit.readInput("digitalRead", 2, pinState, circuit.getInitialInputs()))
+      .toEqual({ known: true, value: 0 });
+  });
+
+  it("does not invalidate simulation state or reversible history when component layout changes", () => {
+    const circuit = createCircuitModel(createStorage());
+    circuit.loadDemo();
+    const engine = createEngine(
+      "void loop() { pinMode(13, OUTPUT); digitalWrite(13, HIGH); digitalWrite(13, LOW); }",
+      circuit,
+      "loop",
+    );
+    engine.start();
+    engine.stepForward();
+    engine.stepForward();
+    const beforeMove = engine.getState();
+    const historyLength = engine.history.length;
+    const wires = circuit.getWires();
+
+    const change = circuit.setComponentPosition("component-2", { x: 680, y: 330 });
+
+    expect(change.changeType).toBe("visual");
+    expect(engine.getState()).toEqual(beforeMove);
+    expect(engine.history).toHaveLength(historyLength);
+    expect(circuit.getWires()).toEqual(wires);
+    engine.stepBackward();
+    expect(engine.state.status).toBe("paused");
+    expect(engine.state.step).toBe(beforeMove.step - 1);
+    expect(circuit.getLedStates(engine.state.pins)["component-2"].state).toBe("unknown");
+  });
+
   it("uses a connected potentiometer value for analogRead", () => {
     const circuit = createCircuitModel(createStorage());
     const potentiometer = circuit.addComponent("potentiometer").component;

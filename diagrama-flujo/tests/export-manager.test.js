@@ -17,6 +17,7 @@ import { generateFlowcharts } from "../src/flowchart/flow-generator.js";
 import { layoutDiagram } from "../src/flowchart/flow-layout.js";
 import { renderFlowchart } from "../src/flowchart/svg-renderer.js";
 import { createVisualDiagram, createVisualLabelStore } from "../src/flowchart/visual-labels.js";
+import { createCircuitModel } from "../src/lab/circuit-model.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -366,6 +367,11 @@ void helper() { // helper note
 
   it("includes the selected technical-sheet sections, project metadata, circuit image, and repeated URL", async () => {
     const { svg, diagram } = renderSource(source);
+    const circuitModel = createCircuitModel({
+      getItem: () => null,
+      setItem: () => {},
+    });
+    circuitModel.loadDemo();
     const circuitSvg = document.createElementNS(SVG_NS, "svg");
     circuitSvg.setAttribute("viewBox", "0 0 800 490");
     circuitSvg.setAttribute("width", "800");
@@ -393,11 +399,8 @@ void helper() { // helper note
         sections: { diagram: true, code: true, circuit: true, components: true, connections: true },
         sourceCode: longCode,
         circuitSvg,
-        components: [
-          { id: "component-1", type: "resistor", properties: { ohms: 220, tolerance: 5, bandCount: 4 } },
-          { id: "component-2", type: "led", properties: { color: "rojo" } },
-        ],
-        wires: [{ from: "arduino:D13", to: "component-1:lead1" }],
+        components: circuitModel.getComponents(),
+        wires: circuitModel.getWires(),
         applicationUrl: "https://example.test/cacharreria/diagrama-flujo/",
       },
       () => pdf,
@@ -417,7 +420,9 @@ void helper() { // helper note
     expect(allText).toContain("No especificado");
     expect(allText).toContain("v0.8.5");
     expect(allText).toContain("D13");
-    expect(allText).toContain("D1");
+    expect(allText).toContain("R1");
+    expect(allText).toContain("220 Ω");
+    expect(allText).toContain("terminal 1");
     expect(allText).toContain("LED");
     expect(pdf.setPage).toHaveBeenCalledTimes(result.pages);
     expect(allText.match(/https:\/\/example\.test\/cacharreria\/diagrama-flujo\//g)).toHaveLength(result.pages);

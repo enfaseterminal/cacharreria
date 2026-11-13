@@ -1,10 +1,25 @@
+import {
+  createDefaultComponentProperties,
+  getArduinoTerminals,
+  getComponentTerminals,
+  hasValidComponentProperties,
+  isArduinoTerminal,
+  isComponentType,
+  resistorValues,
+} from "./circuit-catalog.js";
+
 const STORAGE_KEY = "arduino-flowchart-circuit";
-const CIRCUIT_VERSION = 1;
-const COMPONENT_TYPES = new Set(["led", "resistor", "button", "potentiometer"]);
-const DIGITAL_PINS = new Set(Array.from({ length: 12 }, (_, index) => `D${index + 2}`));
-const ANALOG_PINS = new Set(Array.from({ length: 6 }, (_, index) => `A${index}`));
-const RAILS = new Set(["GND", "5V"]);
-const RESISTOR_VALUES = [220, 330, 470, 1000, 2200, 4700, 10000];
+const CIRCUIT_VERSION = 2;
+const LEGACY_CIRCUIT_VERSION = 1;
+const DIGITAL_PINS = new Set(getArduinoTerminals()
+  .filter((terminal) => terminal.kind === "digital")
+  .map((terminal) => terminal.id));
+const ANALOG_PINS = new Set(getArduinoTerminals()
+  .filter((terminal) => terminal.kind === "analog")
+  .map((terminal) => terminal.id));
+const RAILS = new Set(getArduinoTerminals()
+  .filter((terminal) => terminal.kind === "rail")
+  .map((terminal) => terminal.id));
 const RESISTOR_COLORS = [
   ["negro", "#252525"],
   ["marrón", "#8b4b28"],
@@ -18,52 +33,68 @@ const RESISTOR_COLORS = [
   ["blanco", "#f4f4f4"],
 ];
 
-function createComponent(id, type, index) {
-  const position = { x: 405 + (index % 3) * 112, y: 120 + Math.floor(index / 3) * 88 };
-  const defaults = {
-    led: { color: "rojo" },
-    resistor: { ohms: 220, tolerance: 5, bandCount: 4 },
-    button: { pressed: false },
-    potentiometer: { value: 512 },
-  };
-  return { id, type, position, properties: { ...defaults[type] } };
+function initialPosition(index) {
+  return { x: 405 + (index % 3) * 112, y: 120 + Math.floor(index / 3) * 88 };
+}
+
+function validPosition(position) {
+  return Boolean(
+    position &&
+    Number.isFinite(position.x) &&
+    Number.isFinite(position.y) &&
+    position.x >= 300 &&
+    position.x <= 760 &&
+    position.y >= 85 &&
+    position.y <= 430,
+  );
+}
+
+function componentTerminalIds(component) {
+  return getComponentTerminals(component.type).map(({ id }) => id);
+}
+
+function cloneValue(value) {
+  return structuredClone(value);
+}
+
+function setRecordValue(record, key, value) {
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
+}
+
+function createComponent(id, type) {
+  return { id, type, properties: createDefaultComponentProperties(type) };
 }
 
 function normalizedCircuit(value) {
   if (
     !value ||
-    value.version !== CIRCUIT_VERSION ||
+    ![LEGACY_CIRCUIT_VERSION, CIRCUIT_VERSION].includes(value.version) ||
     !Array.isArray(value.components) ||
     !Array.isArray(value.wires) ||
     value.components.some((component) =>
       !component ||
       typeof component.id !== "string" ||
-      !COMPONENT_TYPES.has(component.type) ||
-      !component.position ||
-      !Number.isFinite(component.position.x) ||
-      !Number.isFinite(component.position.y) ||
-      component.position.x < 300 ||
-      component.position.x > 760 ||
-      component.position.y < 85 ||
-      component.position.y > 430 ||
+      !component.id ||
+      typeof component.type !== "string" ||
+      !component.type ||
       !component.properties ||
       typeof component.properties !== "object" ||
-      (component.type === "led" && !["rojo", "verde", "amarillo", "azul"].includes(component.properties.color)) ||
-      (component.type === "resistor" &&
-        (!RESISTOR_VALUES.includes(Number(component.properties.ohms)) ||
-          ![3, 4, 5].includes(Number(component.properties.bandCount)) ||
-          ![1, 2, 5, 10].includes(Number(component.properties.tolerance)))) ||
-      (component.type === "button" && typeof component.properties.pressed !== "boolean") ||
-      (component.type === "potentiometer" &&
-        (!Number.isInteger(component.properties.value) ||
-          component.properties.value < 0 ||
-          component.properties.value > 1023)),
+      Array.isArray(component.properties) ||
+      (isComponentType(component.type) && !hasValidComponentProperties(component.type, component.properties)),
     ) ||
     value.wires.some((wire) =>
       !wire ||
       typeof wire.id !== "string" ||
+      !wire.id ||
       typeof wire.from !== "string" ||
+      !wire.from ||
       typeof wire.to !== "string" ||
+      !wire.to ||
       wire.from === wire.to,
     )
   ) return null;
@@ -78,41 +109,43 @@ function normalizedCircuit(value) {
     if (wireIds.has(wire.id)) return null;
     wireIds.add(wire.id);
   }
-  const normalized = {
+  const savedPositions = value.version === LEGACY_CIRCUIT_VERSION
+    ? null
+    : value.visual?.positions;
+  if (savedPositions !== undefined && savedPositions !== null && (
+    typeof savedPositions !== "object" || Array.isArray(savedPositions)
+  )) return null;
+  const positions = {};
+  const components = value.components.map((component, index) => {
+    const position = savedPositions?.[component.id] ?? component.position;
+    setRecordValue(
+      positions,
+      component.id,
+      validPosition(position) ? { x: position.x, y: position.y } : initialPosition(index),
+    );
+    const logicalComponent = cloneValue(component);
+    delete logicalComponent.position;
+    return {
+      ...logicalComponent,
+      properties: cloneValue(component.properties),
+    };
+  });
+  return {
     version: CIRCUIT_VERSION,
-    components: value.components.map((component) => ({
-      id: component.id,
-      type: component.type,
-      position: { x: component.position.x, y: component.position.y },
-      properties: { ...component.properties },
-    })),
-    wires: value.wires.map((wire) => ({ id: wire.id, from: wire.from, to: wire.to })),
+    components,
+    visual: { positions },
+    wires: value.wires.map((wire) => cloneValue(wire)),
   };
-  if (normalized.wires.some((wire) => !endpointExists(normalized, wire.from) || !endpointExists(normalized, wire.to))) {
-    return null;
-  }
-  return normalized;
-}
-
-function terminalNames(component) {
-  switch (component.type) {
-    case "led": return ["anode", "cathode"];
-    case "resistor": return ["lead1", "lead2"];
-    case "button": return ["contact1", "contact2"];
-    case "potentiometer": return ["end1", "wiper", "end2"];
-    default: return [];
-  }
 }
 
 function endpointExists(circuit, endpoint) {
   if (endpoint.startsWith("arduino:")) {
-    const pin = endpoint.slice("arduino:".length);
-    return DIGITAL_PINS.has(pin) || ANALOG_PINS.has(pin) || RAILS.has(pin);
+    return isArduinoTerminal(endpoint.slice("arduino:".length));
   }
   const separator = endpoint.lastIndexOf(":");
   if (separator < 1) return false;
   const component = circuit.components.find((item) => item.id === endpoint.slice(0, separator));
-  return Boolean(component && terminalNames(component).includes(endpoint.slice(separator + 1)));
+  return Boolean(component && componentTerminalIds(component).includes(endpoint.slice(separator + 1)));
 }
 
 function wireReachable(circuit, start, target) {
@@ -180,7 +213,7 @@ function digitalEndpoint(pin) {
 }
 
 export function resistorBands(ohms, bandCount = 4, tolerance = 5) {
-  if (!RESISTOR_VALUES.includes(Number(ohms)) || ![3, 4, 5].includes(Number(bandCount))) {
+  if (!resistorValues.includes(Number(ohms)) || ![3, 4, 5].includes(Number(bandCount))) {
     throw new RangeError("Valor o número de bandas de resistencia no admitido.");
   }
   const significantDigits = bandCount === 5 ? 3 : 2;
@@ -198,16 +231,18 @@ export function resistorBands(ohms, bandCount = 4, tolerance = 5) {
 }
 
 export function createCircuitModel(storage = globalThis.localStorage, onError = () => {}) {
-  let state = { version: CIRCUIT_VERSION, components: [], wires: [] };
+  let state = { version: CIRCUIT_VERSION, components: [], visual: { positions: {} }, wires: [] };
   let nextId = 1;
   if (storage) {
     try {
       const saved = storage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = normalizedCircuit(JSON.parse(saved));
+        const savedCircuit = JSON.parse(saved);
+        const parsed = normalizedCircuit(savedCircuit);
         if (!parsed) onError(new Error("El montaje guardado no es compatible; se ha iniciado un laboratorio vacío."));
         else {
           state = parsed;
+          if (savedCircuit.version !== CIRCUIT_VERSION) persist("visual");
           nextId = Math.max(
             1,
             ...state.components.map((component) => Number(component.id.match(/\d+$/)?.[0] ?? 0) + 1),
@@ -221,7 +256,14 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
   }
 
   function snapshot() {
-    return normalizedCircuit(state);
+    return cloneValue(state);
+  }
+
+  function componentForConsumer(component) {
+    return {
+      ...cloneValue(component),
+      position: { ...state.visual.positions[component.id] },
+    };
   }
 
   function persist(changeType = "topology") {
@@ -249,26 +291,39 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
 
   return {
     getState: snapshot,
-    getComponents: () => state.components.map((component) => ({
-      ...component,
-      position: { ...component.position },
-      properties: { ...component.properties },
-    })),
-    getWires: () => state.wires.map((wire) => ({ ...wire })),
+    getComponents: () => state.components.map(componentForConsumer),
+    getVisualState: () => cloneValue(state.visual),
+    getComponentPosition(id) {
+      const position = state.visual.positions[id];
+      return position ? { ...position } : null;
+    },
+    getWires: () => state.wires.map((wire) => cloneValue(wire)),
     getInitialInputs: createInitialInputs,
     addComponent(type) {
-      if (!COMPONENT_TYPES.has(type)) throw new TypeError("Tipo de componente desconocido.");
+      if (!isComponentType(type)) throw new TypeError("Tipo de componente desconocido.");
       if (state.components.length >= 12) throw new RangeError("El montaje admite hasta 12 componentes.");
-      const component = createComponent(`component-${nextId++}`, type, state.components.length);
+      const component = createComponent(`component-${nextId++}`, type);
       state.components.push(component);
-      return { component, ...update("topology") };
+      state.visual.positions[component.id] = initialPosition(state.components.length - 1);
+      return { component: componentForConsumer(component), ...update("topology") };
     },
     removeComponent(id) {
       const before = state.components.length;
       state.components = state.components.filter((component) => component.id !== id);
       if (before === state.components.length) return null;
+      delete state.visual.positions[id];
       state.wires = state.wires.filter((wire) => !wire.from.startsWith(`${id}:`) && !wire.to.startsWith(`${id}:`));
       return update("topology");
+    },
+    setComponentPosition(id, position) {
+      if (!state.components.some((component) => component.id === id)) {
+        throw new Error("El componente seleccionado ya no existe.");
+      }
+      if (!validPosition(position)) {
+        throw new RangeError("La posición debe estar dentro de los límites del montaje.");
+      }
+      state.visual.positions[id] = { x: position.x, y: position.y };
+      return { position: { ...state.visual.positions[id] }, ...update("visual") };
     },
     addWire(from, to) {
       if (from === to || !endpointExists(state, from) || !endpointExists(state, to)) {
@@ -279,7 +334,7 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
       )) throw new Error("Esos terminales ya están conectados.");
       const wire = { id: `wire-${nextId++}`, from, to };
       state.wires.push(wire);
-      return { wire, ...update("topology") };
+      return { wire: cloneValue(wire), ...update("topology") };
     },
     removeWire(id) {
       const previousLength = state.wires.length;
@@ -292,7 +347,7 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
       if (!component) throw new Error("El componente seleccionado ya no existe.");
       if (component.type === "led" && name === "color" && ["rojo", "verde", "amarillo", "azul"].includes(value)) {
         component.properties.color = value;
-      } else if (component.type === "resistor" && name === "ohms" && RESISTOR_VALUES.includes(Number(value))) {
+      } else if (component.type === "resistor" && name === "ohms" && resistorValues.includes(Number(value))) {
         component.properties.ohms = Number(value);
       } else if (component.type === "resistor" && name === "bandCount" && [3, 4, 5].includes(Number(value))) {
         component.properties.bandCount = Number(value);
@@ -300,16 +355,16 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
         component.properties.tolerance = Number(value);
       } else if (component.type === "button" && name === "pressed" && typeof value === "boolean") {
         component.properties.pressed = value;
-        return { ...update("input"), component };
+        return { ...update("input"), component: componentForConsumer(component) };
       } else if (component.type === "potentiometer" && name === "value") {
         const parsed = Number(value);
         if (!Number.isInteger(parsed) || parsed < 0 || parsed > 1023) throw new RangeError("El valor debe estar entre 0 y 1023.");
         component.properties.value = parsed;
-        return { ...update("input"), component };
+        return { ...update("input"), component: componentForConsumer(component) };
       } else {
         throw new TypeError("Propiedad de componente no válida.");
       }
-      return { ...update("topology"), component };
+      return { ...update("topology"), component: componentForConsumer(component) };
     },
     loadDemo() {
       state = createDemoCircuit();
@@ -317,18 +372,16 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
       return update("topology");
     },
     clear() {
-      state = { version: CIRCUIT_VERSION, components: [], wires: [] };
+      state = { version: CIRCUIT_VERSION, components: [], visual: { positions: {} }, wires: [] };
       nextId = 1;
       return update("topology");
     },
     getEndpoints() {
       const endpoints = [
-        ...[...DIGITAL_PINS].map((pin) => ({ id: `arduino:${pin}`, label: `Arduino ${pin}` })),
-        ...[...ANALOG_PINS].map((pin) => ({ id: `arduino:${pin}`, label: `Arduino ${pin}` })),
-        ...[...RAILS].map((pin) => ({ id: `arduino:${pin}`, label: `Arduino ${pin}` })),
+        ...getArduinoTerminals().map(({ id: pin }) => ({ id: `arduino:${pin}`, label: `Arduino ${pin}` })),
       ];
       for (const component of state.components) {
-        for (const terminal of terminalNames(component)) {
+        for (const terminal of componentTerminalIds(component)) {
           endpoints.push({
             id: `${component.id}:${terminal}`,
             label: `${component.id} · ${terminal}`,
@@ -340,7 +393,11 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
     getWarnings() {
       const warnings = [];
       for (const component of state.components) {
-        for (const terminal of terminalNames(component)) {
+        if (!isComponentType(component.type)) {
+          warnings.push(`${component.id}: el componente «${component.type}» se conserva, pero no se simula.`);
+          continue;
+        }
+        for (const terminal of componentTerminalIds(component)) {
           if (!state.wires.some((wire) => wire.from === `${component.id}:${terminal}` || wire.to === `${component.id}:${terminal}`)) {
             warnings.push(`${component.id}: terminal ${terminal} sin conectar.`);
           }
@@ -368,6 +425,11 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
             this.readInput("analogRead", pin.slice(1), {}, createInitialInputs()).known,
           );
           if (!valid) warnings.push(`${component.id}: conecta el wiper a A0–A5 y los extremos a 5V y GND.`);
+        }
+      }
+      for (const wire of state.wires) {
+        if (!endpointExists(state, wire.from) || !endpointExists(state, wire.to)) {
+          warnings.push(`${wire.id}: conexión desconocida conservada (${wire.from} ↔ ${wire.to}).`);
         }
       }
       return warnings;
@@ -444,12 +506,18 @@ export function createCircuitModel(storage = globalThis.localStorage, onError = 
 }
 
 export function createDemoCircuit() {
-  const resistor = createComponent("component-1", "resistor", 0);
-  const led = createComponent("component-2", "led", 1);
+  const resistor = createComponent("component-1", "resistor");
+  const led = createComponent("component-2", "led");
   led.properties.color = "rojo";
   return {
     version: CIRCUIT_VERSION,
     components: [resistor, led],
+    visual: {
+      positions: {
+        "component-1": initialPosition(0),
+        "component-2": initialPosition(1),
+      },
+    },
     wires: [
       { id: "wire-3", from: "arduino:D13", to: "component-1:lead1" },
       { id: "wire-4", from: "component-1:lead2", to: "component-2:anode" },
@@ -459,4 +527,4 @@ export function createDemoCircuit() {
 }
 
 export const circuitStorageKey = STORAGE_KEY;
-export const resistorValues = [...RESISTOR_VALUES];
+export { resistorValues };
