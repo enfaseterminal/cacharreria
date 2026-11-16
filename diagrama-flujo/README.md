@@ -1,6 +1,6 @@
 # Arduino Flowchart
 
-Aplicación web educativa para analizar sketches Arduino y generar diagramas de flujo SVG separados por función. **Versión 0.8.5:** el PDF se exporta como una hoja técnica con portada editable, diagrama y montaje independientes, código paginado, lista de componentes y conexiones seleccionables, y URL dinámica en todos los pies de página. Se conserva el laboratorio visual conectado al simulador reversible. El proyecto funciona en el navegador y no necesita backend.
+Aplicación web educativa para analizar sketches Arduino y generar diagramas de flujo SVG separados por función. **Versión 0.9.1:** el laboratorio visual incorpora catálogo de componentes, cableado interactivo y posiciones persistentes, conectado al simulador reversible. El PDF se exporta como una hoja técnica con portada editable, diagrama y montaje independientes, código paginado, lista de componentes y conexiones seleccionables, y URL dinámica en todos los pies de página. El proyecto funciona en el navegador y no necesita backend.
 
 ## Requisitos
 
@@ -26,7 +26,7 @@ npm run preview
 
 El código y la preferencia de tema se guardan en `localStorage`; las etiquetas visuales se guardan aparte y solo se restauran si el código fuente coincide exactamente. **Guardar** descarga el código original como archivo local; las etiquetas no lo modifican ni se incluyen en el archivo Arduino.
 
-## Uso de las fases 3 a 8
+## Uso de las fases 3 a 9
 
 1. Escribe o abre un sketch `.ino`, `.cpp` o `.h`; el ejemplo Blink sigue disponible.
 2. Pulsa **Generar diagrama**. Se analiza automáticamente el contenido actual si el análisis anterior no corresponde exactamente al código del editor.

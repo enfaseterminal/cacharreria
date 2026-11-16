@@ -394,7 +394,7 @@ void helper() { // helper note
           author: "No especificado",
           date: "2026-11-01",
           description: "Control de un LED",
-          version: "v0.8.5",
+          version: "v0.9.1",
         },
         sections: { diagram: true, code: true, circuit: true, components: true, connections: true },
         sourceCode: longCode,
@@ -418,7 +418,7 @@ void helper() { // helper note
     const allText = pdf.text.mock.calls.flatMap(([value]) => Array.isArray(value) ? value : [value]).join(" ");
     expect(allText).toContain("Luz de prueba");
     expect(allText).toContain("No especificado");
-    expect(allText).toContain("v0.8.5");
+    expect(allText).toContain("v0.9.1");
     expect(allText).toContain("D13");
     expect(allText).toContain("R1");
     expect(allText).toContain("220 Ω");
